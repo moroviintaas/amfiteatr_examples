@@ -197,7 +197,7 @@ pub struct PrisonerStateTranslate{
 
 impl ConvStateToTensor<PrisonerState> for PrisonerStateTranslate{
     fn make_tensor(&self, t: &PrisonerState) -> Tensor {
-        let mut array = [0.0;2*256];
+        let mut array = [0.0f32;2*256];
         for i in 0..t.previous_actions().len(){
             array[2*i] = match t.previous_actions()[i].own_action{
                 Betray =>  1.0,
@@ -240,8 +240,8 @@ impl ActionTensor for PrisonerAction{
             }
         };
         match v[0]{
-            1 => Ok(Betray),
-            2 => Ok(Cover),
+            0 => Ok(Betray),
+            1 => Ok(Cover),
             _ => Err(ConvertError::ActionDeserialize(format!("{}", t)))
         }
     }

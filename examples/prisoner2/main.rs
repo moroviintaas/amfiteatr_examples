@@ -7,7 +7,7 @@ use sztorm::comm::SyncCommEnv;
 use sztorm::env::generic::HashMapEnvT;
 use sztorm::env::{ResetEnvironment,  RoundRobinUniversalEnvironment, TracingEnv};
 use sztorm::error::SztormError;
-use sztorm_examples::prisoner::agent::{BetrayRatioPolicy, CoverPolicy, Forgive1Policy, PrisonerState, RandomPrisonerPolicy};
+use sztorm_examples::prisoner::agent::{BetrayRatioPolicy, CoverPolicy, Forgive1Policy, PrisonerState, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
 use sztorm_examples::prisoner::common::RewardTable;
 use sztorm_examples::prisoner::domain::PrisonerAction::Betray;
 use sztorm_examples::prisoner::domain::PrisonerDomain;
@@ -113,7 +113,8 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
 
     env.reset(PrisonerEnvState::new(reward_table,  10));
     let mut prisoner0 = prisoner0.do_change_policy(RandomPrisonerPolicy{});
-    let mut prisoner1 = prisoner1.do_change_policy(BetrayRatioPolicy{});
+    //let mut prisoner1 = prisoner1.do_change_policy(BetrayRatioPolicy{});
+    let mut prisoner1 = prisoner1.do_change_policy(SwitchOnTwoSubsequent{});
     prisoner0.reset(PrisonerState::new(reward_table));
     prisoner1.reset(PrisonerState::new(reward_table));
 

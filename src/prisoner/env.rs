@@ -43,7 +43,7 @@ impl Display for PrisonerEnvState{
                 PrisonerAction::Betray => write!(f, "-B ")?,
                 PrisonerAction::Cover => write!(f, "-C ")?
             };*/
-            write!(f, "{:#}-{:#}", p[Andrzej], p[Janusz])?;
+            write!(f, "{:#}-{:#} ", p[Andrzej], p[Janusz])?;
         }
         write!(f, " | ")?;
         match self.last_round_actions[Andrzej]{

@@ -130,6 +130,29 @@ impl Policy<PrisonerDomain> for RandomPrisonerPolicy{
 }
 
 
+pub struct SwitchOnTwoSubsequent{}
+
+impl Policy<PrisonerDomain> for SwitchOnTwoSubsequent{
+    type StateType = PrisonerState;
+
+    fn select_action(&self, state: &Self::StateType) -> Option<PrisonerAction> {
+
+        if let Some(i_update) = state.previous_actions().last(){
+            let mut other_action = i_update.other_prisoner_action;
+            for i in (0..state.previous_actions.len()-1).rev(){
+                if state.previous_actions()[i].other_prisoner_action == other_action{
+                    return Some(other_action)
+                } else {
+                    other_action = state.previous_actions()[i].other_prisoner_action;
+                }
+            }
+            Some(Cover)
+        } else{
+            Some(Cover)
+        }
+
+    }
+}
 
 impl InformationSet<PrisonerDomain> for PrisonerState{
     type ActionIteratorType = [PrisonerAction;2];

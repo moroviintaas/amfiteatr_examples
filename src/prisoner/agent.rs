@@ -251,7 +251,7 @@ impl ActionTensor for PrisonerAction{
     /// use sztorm_rl::tensor_repr::ActionTensor;
     /// let t = Tensor::from_slice(&[1i64;1]);
     /// let action = PrisonerAction::try_from_tensor(&t).unwrap();
-    /// assert_eq!(action, Betray);
+    /// assert_eq!(action, Cover);
     /// ```
     fn try_from_tensor(t: &Tensor) -> Result<Self, ConvertError> {
 

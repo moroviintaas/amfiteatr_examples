@@ -238,8 +238,8 @@ impl ConvStateToTensor<PrisonerState> for PrisonerStateTranslate{
 impl ActionTensor for PrisonerAction{
     fn to_tensor(&self) -> Tensor {
         match self{
-            Betray => Tensor::from_slice(&[1.0f64;1]),
-            Cover => Tensor::from_slice(&[2.0f64;1])
+            Betray => Tensor::from_slice(&[0.0f32;1]),
+            Cover => Tensor::from_slice(&[1.0f32;1])
         }
     }
 

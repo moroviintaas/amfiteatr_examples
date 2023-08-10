@@ -4,12 +4,12 @@ use std::path::PathBuf;
 use log::LevelFilter;
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use sztorm::agent::{AgentGenT, AutomaticAgentRewarded};
+use sztorm::agent::{AgentGenT, AutomaticAgentRewarded, CommunicatingAgent, PolicyAgent, ResetAgent, TracingAgent};
 use sztorm::comm::SyncCommEnv;
 use sztorm::env::generic::HashMapEnvT;
-use sztorm::env::RoundRobinUniversalEnvironment;
+use sztorm::env::{ResetEnvironment, RoundRobinUniversalEnvironment};
 use sztorm::error::SztormError;
-use sztorm_examples::prisoner::agent::{CoverPolicy, PrisonerState, PrisonerStateTranslate};
+use sztorm_examples::prisoner::agent::{CoverPolicy, PrisonerState, PrisonerStateTranslate, SwitchOnTwoSubsequent};
 use sztorm_examples::prisoner::common::RewardTable;
 use sztorm_examples::prisoner::domain::PrisonerDomain;
 use sztorm_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
@@ -59,9 +59,11 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     let (comm_env_0, comm_prisoner_0) = SyncCommEnv::new_pair();
     let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
 
+    let initial_prisoner_state = PrisonerState::new(reward_table);
+    let initial_env_state = PrisonerEnvState::new(reward_table, 10);
     let mut prisoner0 = AgentGenT::new(
         Andrzej,
-        PrisonerState::new(reward_table), comm_prisoner_0, CoverPolicy{});
+        PrisonerState::new(reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
 
     let var_store = VarStore::new(device);
     let neural_net = A2CNet::new(var_store, |path|{
@@ -89,16 +91,37 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     env_coms.insert(Janusz, comm_env_1);
     let mut env = HashMapEnvT::new(env_state, env_coms);
 
-    thread::scope(|s|{
-        s.spawn(||{
-            env.run_round_robin_uni_rewards().unwrap();
-        });
-        s.spawn(||{
-            prisoner0.run_rewarded().unwrap();
-        });
-        s.spawn(||{
-            prisoner1.run_rewarded().unwrap();
-        });
-    });
+    let epochs = 1;
+    let games_in_epoch = 2;
+    let mut trajectory_archive = Vec::with_capacity(games_in_epoch);
+    for epoch in 0..epochs{
+        trajectory_archive.clear();
+        for game in 0..games_in_epoch{
+            prisoner0.reset(initial_prisoner_state.clone());
+            prisoner1.reset(initial_prisoner_state.clone());
+            env.reset(initial_env_state.clone());
+
+            thread::scope(|s|{
+                s.spawn(||{
+                    env.run_round_robin_uni_rewards().unwrap();
+                });
+                s.spawn(||{
+                    prisoner0.run_rewarded().unwrap();
+                });
+                s.spawn(||{
+                    prisoner1.run_rewarded().unwrap();
+                });
+
+            });
+
+            trajectory_archive.push(prisoner1.take_trajectory());
+
+        }
+
+        prisoner1.policy_mut().batch_train_env_rewards(&trajectory_archive[..], 0.99).unwrap();
+        trajectory_archive.clear();
+
+    }
+
     Ok(())
 }

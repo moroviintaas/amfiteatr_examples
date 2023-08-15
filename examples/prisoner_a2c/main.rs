@@ -11,7 +11,6 @@ use sztorm::env::generic::HashMapEnvT;
 use sztorm::env::{EnvironmentState, ResetEnvironment, RoundRobinUniversalEnvironment};
 use sztorm::error::SztormError;
 use sztorm::protocol::DomainParameters;
-use sztorm_examples::options::ExampleOptions;
 use sztorm_examples::prisoner::agent::{CoverPolicy, PrisonerState, PrisonerStateTranslate, SwitchOnTwoSubsequent};
 use sztorm_examples::prisoner::common::RewardTable;
 use sztorm_examples::prisoner::domain::PrisonerDomain;
@@ -19,6 +18,29 @@ use sztorm_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
 use sztorm_examples::prisoner::env::PrisonerEnvState;
 use sztorm_rl::actor_critic::ActorCriticPolicy;
 use sztorm_rl::torch_net::{A2CNet, TensorA2C};
+
+
+
+#[derive(Parser)]
+#[command(author, version, about, long_about = None)]
+struct ExampleOptions{
+
+    #[arg(short = 'v', long = "log_level", value_enum, default_value = "OFF")]
+    pub log_level: LevelFilter,
+
+    #[arg(short = 'o', long = "logfile")]
+    pub log_file: Option<PathBuf>,
+
+    #[arg(short = 's', long = "save")]
+    pub save_file: Option<PathBuf>,
+
+    #[arg(short = 'l', long = "load")]
+    pub load_file: Option<PathBuf>,
+
+    #[arg(short = 'e', long = "epochs", default_value = "10")]
+    pub epochs: usize,
+
+}
 
 pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
@@ -39,22 +61,11 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
             Some(f) => dispatch.chain(fern::log_file(f)?)
         }
 
-        //.chain(std::io::stdout())
-        //.chain(fern::log_file("output.log")?)
         .apply()?;
     Ok(())
 }
 
-/*
-fn evaluate<DP: DomainParameters, P0: Policy<DP>, P1: Policy<DP>, ES: EnvironmentState<DP>>(
-    env: &mut HashMapEnvT<DP, ES, SyncCommEnv<DP>>,
-    agent0: &mut AgentGenT<DP, P0::StateType, SyncCommAgent<DP>>,
-    agent1: &mut AgentGenT<DP, P1::StateType, SyncCommAgent<DP>>,
-    env_default_state
-) -> Result<(), SztormError<DP>>{
 
-    todo!()
-}*/
 
 struct PrisonerModel<P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDomain, StateType=PrisonerState>>{
     pub env: HashMapEnvT<PrisonerDomain, PrisonerEnvState, SyncCommEnv<PrisonerDomain>>,
@@ -146,7 +157,7 @@ impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>> PrisonerModel<P0, Act
 }
 
 fn main() -> Result<(), SztormError<PrisonerDomain>>{
-    let device = Device::cuda_if_available();
+    let device = Device::Cpu;
 
     let args = ExampleOptions::parse();
 
@@ -172,6 +183,8 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
         Andrzej,
         PrisonerState::new(reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
 
+
+
     let var_store = VarStore::new(device);
     let neural_net = A2CNet::new(var_store, |path|{
         let seq = nn::seq()
@@ -193,6 +206,11 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     let mut prisoner1 = AgentGenT::new(
         Janusz,
         PrisonerState::new(reward_table), comm_prisoner_1, n_policy);
+
+    if let Some(var_store_file) = args.load_file{
+        prisoner1.policy_mut().network_mut().var_store_mut().load(var_store_file)
+            .expect("Failed loading vars from file");
+    }
     let mut env_coms = HashMap::new();
     env_coms.insert(Andrzej, comm_env_0);
     env_coms.insert(Janusz, comm_env_1);
@@ -207,7 +225,12 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     let scores = model.evaluate(1000)?;
     println!("Before training : agent 0: {}, agent 1: {}", scores.0, scores.1);
 
-    model.train_agent_1(1000, 64)?;
+    model.train_agent_1(args.epochs, 64)?;
+
+    if let Some(var_store_file) = args.save_file{
+        model.agent1.policy().network().var_store().save(var_store_file)
+            .expect("Failed saving vars to file");
+    }
 
     /*
 

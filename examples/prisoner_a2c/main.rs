@@ -1,14 +1,17 @@
 use std::collections::HashMap;
 use std::{option, thread};
 use std::path::PathBuf;
+use clap::Parser;
 use log::LevelFilter;
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use sztorm::agent::{AgentGenT, AutomaticAgentRewarded, CommunicatingAgent, PolicyAgent, ResetAgent, TracingAgent};
-use sztorm::comm::SyncCommEnv;
+use sztorm::agent::{AgentGenT, AutomaticAgentRewarded, CommunicatingAgent, EnvRewardedAgent, Policy, PolicyAgent, ResetAgent, TracingAgent};
+use sztorm::comm::{SyncComm, SyncCommAgent, SyncCommEnv};
 use sztorm::env::generic::HashMapEnvT;
-use sztorm::env::{ResetEnvironment, RoundRobinUniversalEnvironment};
+use sztorm::env::{EnvironmentState, ResetEnvironment, RoundRobinUniversalEnvironment};
 use sztorm::error::SztormError;
+use sztorm::protocol::DomainParameters;
+use sztorm_examples::options::ExampleOptions;
 use sztorm_examples::prisoner::agent::{CoverPolicy, PrisonerState, PrisonerStateTranslate, SwitchOnTwoSubsequent};
 use sztorm_examples::prisoner::common::RewardTable;
 use sztorm_examples::prisoner::domain::PrisonerDomain;
@@ -41,10 +44,114 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
         .apply()?;
     Ok(())
 }
+
+/*
+fn evaluate<DP: DomainParameters, P0: Policy<DP>, P1: Policy<DP>, ES: EnvironmentState<DP>>(
+    env: &mut HashMapEnvT<DP, ES, SyncCommEnv<DP>>,
+    agent0: &mut AgentGenT<DP, P0::StateType, SyncCommAgent<DP>>,
+    agent1: &mut AgentGenT<DP, P1::StateType, SyncCommAgent<DP>>,
+    env_default_state
+) -> Result<(), SztormError<DP>>{
+
+    todo!()
+}*/
+
+struct PrisonerModel<P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDomain, StateType=PrisonerState>>{
+    pub env: HashMapEnvT<PrisonerDomain, PrisonerEnvState, SyncCommEnv<PrisonerDomain>>,
+    pub agent0: AgentGenT<PrisonerDomain, P0, SyncCommAgent<PrisonerDomain>>,
+    pub agent1: AgentGenT<PrisonerDomain, P1, SyncCommAgent<PrisonerDomain>>,
+    pub env_default_state: PrisonerEnvState,
+    pub agent0_default_state: <P0 as Policy<PrisonerDomain>>::StateType,
+    pub agent1_default_state: <P1 as Policy<PrisonerDomain>>::StateType,
+
+}
+
+impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDomain, StateType=PrisonerState>> PrisonerModel<P0, P1>{
+
+    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<(f64, f64), SztormError<PrisonerDomain>>{
+        let mut sum_rewards_0 = 0.0;
+        let mut sum_rewards_1 = 0.0;
+
+
+        for _ in 0..number_of_tries{
+            self.env.reset(self.env_default_state.clone());
+            self.agent0.reset(self.agent0_default_state.clone());
+            self.agent1.reset(self.agent1_default_state.clone());
+            thread::scope(|s|{
+                s.spawn(||{
+                    self.env.run_round_robin_uni_rewards().unwrap();
+                });
+                s.spawn(||{
+                    self.agent0.run_rewarded().unwrap();
+                });
+                s.spawn(||{
+                    self.agent1.run_rewarded().unwrap();
+                });
+
+            });
+
+            sum_rewards_0 += self.agent0.current_universal_score() as f64;
+            sum_rewards_1 += self.agent1.current_universal_score() as f64;
+        }
+
+        sum_rewards_0 /= number_of_tries as f64;
+        sum_rewards_1 /= number_of_tries as f64;
+
+
+        Ok((sum_rewards_0, sum_rewards_1))
+    }
+
+
+}
+
+impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>> PrisonerModel<P0, ActorCriticPolicy<PrisonerDomain, PrisonerState, PrisonerStateTranslate>>{
+
+    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize) -> Result<(), SztormError<PrisonerDomain>>{
+
+        let mut trajectory_archive = Vec::with_capacity(games_in_epoch);
+        for epoch in 0..epochs{
+            trajectory_archive.clear();
+            for game in 0..games_in_epoch{
+                self.agent0.reset(self.agent0_default_state.clone());
+                self.agent1.reset(self.agent1_default_state.clone());
+                self.env.reset(self.env_default_state.clone());
+
+                thread::scope(|s|{
+                    s.spawn(||{
+                        self.env.run_round_robin_uni_rewards().unwrap();
+                    });
+                    s.spawn(||{
+                        self.agent0.run_rewarded().unwrap();
+                    });
+                    s.spawn(||{
+                        self.agent1.run_rewarded().unwrap();
+                    });
+
+                });
+
+                trajectory_archive.push(self.agent1.take_trajectory());
+
+            }
+
+            self.agent1.policy_mut().batch_train_env_rewards(&trajectory_archive[..], 0.99).unwrap();
+            let scores = self.evaluate(1000)?;
+            println!("Epoch {}: agent 0: {}, agent 1: {}", epoch, scores.0, scores.1);
+            trajectory_archive.clear();
+
+        }
+        Ok(())
+        //todo!()
+    }
+
+}
+
 fn main() -> Result<(), SztormError<PrisonerDomain>>{
     let device = Device::cuda_if_available();
 
-    setup_logger(LevelFilter::Debug, &None).unwrap();
+    let args = ExampleOptions::parse();
+
+    //setup_logger(LevelFilter::Debug, &None).unwrap();
+    setup_logger(args.log_level, &args.log_file).unwrap();
 
     let reward_table = RewardTable{
         cover_v_cover: 5,
@@ -53,14 +160,14 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
         cover_v_betray: 1
     };
 
-
-    let env_state = PrisonerEnvState::new(reward_table,  10);
+    let initial_env_state = PrisonerEnvState::new(reward_table, 10);
+    let env_state = initial_env_state.clone();
 
     let (comm_env_0, comm_prisoner_0) = SyncCommEnv::new_pair();
     let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
 
     let initial_prisoner_state = PrisonerState::new(reward_table);
-    let initial_env_state = PrisonerEnvState::new(reward_table, 10);
+
     let mut prisoner0 = AgentGenT::new(
         Andrzej,
         PrisonerState::new(reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
@@ -90,6 +197,20 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     env_coms.insert(Andrzej, comm_env_0);
     env_coms.insert(Janusz, comm_env_1);
     let mut env = HashMapEnvT::new(env_state, env_coms);
+
+
+    let mut model = PrisonerModel{
+        env, agent1: prisoner1, agent0: prisoner0, agent1_default_state: initial_prisoner_state.clone(),
+        agent0_default_state: initial_prisoner_state.clone(), env_default_state: initial_env_state.clone()
+    };
+
+    let scores = model.evaluate(1000)?;
+    println!("Before training : agent 0: {}, agent 1: {}", scores.0, scores.1);
+
+    model.train_agent_1(1000, 64)?;
+
+    /*
+
 
     let epochs = 1;
     let games_in_epoch = 2;
@@ -122,6 +243,8 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
         trajectory_archive.clear();
 
     }
+
+     */
 
     Ok(())
 }

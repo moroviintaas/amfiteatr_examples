@@ -1,4 +1,3 @@
-use std::cell::Cell;
 use std::fmt::{Display, Formatter};
 use rand::seq::IteratorRandom;
 use tch::Tensor;
@@ -61,7 +60,7 @@ pub struct CoverPolicy{}
 impl Policy<PrisonerDomain> for CoverPolicy{
     type StateType = PrisonerState;
 
-    fn select_action(&self, state: &Self::StateType) -> Option<PrisonerAction> {
+    fn select_action(&self, _state: &Self::StateType) -> Option<PrisonerAction> {
         //state._select_action(Cover);
         Some(Cover)
     }
@@ -258,7 +257,7 @@ impl ActionTensor for PrisonerAction{
 
         let v: Vec<i64> = match Vec::try_from(t){
             Ok(v) => v,
-            Err(e) =>{
+            Err(_) =>{
                 return Err(ConvertError::ActionDeserialize(format!("{}", t)))
             }
         };

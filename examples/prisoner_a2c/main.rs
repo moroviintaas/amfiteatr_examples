@@ -1,11 +1,11 @@
 use std::collections::HashMap;
 use std::{option, thread};
 use std::path::PathBuf;
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use log::LevelFilter;
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use sztorm::agent::{AgentGenT, AutomaticAgentRewarded, CommunicatingAgent, EnvRewardedAgent, Policy, PolicyAgent, ResetAgent, TracingAgent};
+use sztorm::agent::{AgentGenT, AutomaticAgentRewarded, CommunicatingAgent, EnvRewardedAgent, InternalRewardedAgent, Policy, PolicyAgent, ResetAgent, TracingAgent};
 use sztorm::comm::{SyncComm, SyncCommAgent, SyncCommEnv};
 use sztorm::env::generic::HashMapEnvT;
 use sztorm::env::{EnvironmentState, ResetEnvironment, RoundRobinUniversalEnvironment};
@@ -20,6 +20,12 @@ use sztorm_rl::actor_critic::ActorCriticPolicy;
 use sztorm_rl::torch_net::{A2CNet, TensorA2C};
 
 
+
+#[derive(ValueEnum, Debug, Copy, Clone)]
+pub enum RewardSource{
+    Env,
+    State
+}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -39,6 +45,9 @@ struct ExampleOptions{
 
     #[arg(short = 'e', long = "epochs", default_value = "10")]
     pub epochs: usize,
+
+    #[arg(short = 'r', long = "reward", default_value = "env")]
+    pub reward_source: RewardSource,
 
 }
 
@@ -79,9 +88,11 @@ struct PrisonerModel<P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Po
 
 impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDomain, StateType=PrisonerState>> PrisonerModel<P0, P1>{
 
-    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<(f64, f64), SztormError<PrisonerDomain>>{
-        let mut sum_rewards_0 = 0.0;
-        let mut sum_rewards_1 = 0.0;
+    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), SztormError<PrisonerDomain>>{
+        let mut sum_rewards_0_uni = 0.0;
+        let mut sum_rewards_1_uni = 0.0;
+        let mut sum_rewards_0_sub = 0.0;
+        let mut sum_rewards_1_sub = 0.0;
 
 
         for _ in 0..number_of_tries{
@@ -101,15 +112,19 @@ impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDo
 
             });
 
-            sum_rewards_0 += self.agent0.current_universal_score() as f64;
-            sum_rewards_1 += self.agent1.current_universal_score() as f64;
+            sum_rewards_0_uni += self.agent0.current_universal_score() as f64;
+            sum_rewards_1_uni += self.agent1.current_universal_score() as f64;
+            sum_rewards_0_sub += self.agent0.current_subjective_score();
+            sum_rewards_1_sub += self.agent1.current_subjective_score();
         }
 
-        sum_rewards_0 /= number_of_tries as f64;
-        sum_rewards_1 /= number_of_tries as f64;
+        sum_rewards_0_uni /= number_of_tries as f64;
+        sum_rewards_1_uni /= number_of_tries as f64;
+        sum_rewards_0_sub /= number_of_tries as f64;
+        sum_rewards_1_sub /= number_of_tries as f64;
 
 
-        Ok((sum_rewards_0, sum_rewards_1))
+        Ok(((sum_rewards_0_uni, sum_rewards_0_sub), (sum_rewards_1_uni, sum_rewards_1_sub)))
     }
 
 
@@ -117,7 +132,7 @@ impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDo
 
 impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>> PrisonerModel<P0, ActorCriticPolicy<PrisonerDomain, PrisonerState, PrisonerStateTranslate>>{
 
-    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize) -> Result<(), SztormError<PrisonerDomain>>{
+    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize, reward_source: RewardSource) -> Result<(), SztormError<PrisonerDomain>>{
 
         let mut trajectory_archive = Vec::with_capacity(games_in_epoch);
         for epoch in 0..epochs{
@@ -144,14 +159,17 @@ impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>> PrisonerModel<P0, Act
 
             }
 
-            self.agent1.policy_mut().batch_train_env_rewards(&trajectory_archive[..], 0.99).unwrap();
+            match reward_source{
+                RewardSource::Env => self.agent1.policy_mut().batch_train_env_rewards(&trajectory_archive[..], 0.99).unwrap(),
+                RewardSource::State => self.agent1.policy_mut().batch_train_state_rewards(&trajectory_archive[..], 0.99).unwrap(),
+            };
+
             let scores = self.evaluate(1000)?;
-            println!("Epoch {}: agent 0: {}, agent 1: {}", epoch, scores.0, scores.1);
+            println!("Epoch {}: agent 0: ({} | {:.2}); agent 1: ({} | {:.2})", epoch, scores.0.0, scores.0.1, scores.1.0, scores.1.1);
             trajectory_archive.clear();
 
         }
         Ok(())
-        //todo!()
     }
 
 }
@@ -223,9 +241,10 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     };
 
     let scores = model.evaluate(1000)?;
-    println!("Before training : agent 0: {}, agent 1: {}", scores.0, scores.1);
+    println!("Before training: agent 0: ({} | {}); agent 1: ({} | {})", scores.0.0, scores.0.1, scores.1.0, scores.1.1);
 
-    model.train_agent_1(args.epochs, 64)?;
+
+    model.train_agent_1(args.epochs, 128, args.reward_source)?;
 
     if let Some(var_store_file) = args.save_file{
         model.agent1.policy().network().var_store().save(var_store_file)

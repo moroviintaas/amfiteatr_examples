@@ -11,7 +11,7 @@ use sztorm::env::generic::HashMapEnvT;
 use sztorm::env::{EnvironmentState, ResetEnvironment, RoundRobinUniversalEnvironment};
 use sztorm::error::SztormError;
 use sztorm::protocol::DomainParameters;
-use sztorm_examples::prisoner::agent::{CoverPolicy, PrisonerState, PrisonerStateTranslate, SwitchOnTwoSubsequent};
+use sztorm_examples::prisoner::agent::{CoverPolicy, PrisonerInfoSetWay, PrisonerState, PrisonerStateTranslate, SwitchOnTwoSubsequent};
 use sztorm_examples::prisoner::common::RewardTable;
 use sztorm_examples::prisoner::domain::PrisonerDomain;
 use sztorm_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
@@ -130,7 +130,18 @@ impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDo
 
 }
 
-impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>> PrisonerModel<P0, ActorCriticPolicy<PrisonerDomain, PrisonerState, PrisonerStateTranslate>>{
+impl<
+    P0: Policy<PrisonerDomain,
+        StateType=PrisonerState>
+> PrisonerModel<
+    P0,
+    ActorCriticPolicy<
+        PrisonerDomain,
+        PrisonerState,
+        //PrisonerStateTranslate
+        PrisonerInfoSetWay
+    >
+>{
 
     fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize, reward_source: RewardSource) -> Result<(), SztormError<PrisonerDomain>>{
 
@@ -219,7 +230,8 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     });
 
     let optimiser = neural_net.build_optimizer(Adam::default(), 1e-4).unwrap();
-    let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerStateTranslate {});
+    //let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerStateTranslate {});
+    let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerInfoSetWay{});
 
     let mut prisoner1 = AgentGenT::new(
         Janusz,

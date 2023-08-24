@@ -5,7 +5,7 @@ use sztorm::agent::Policy;
 use sztorm::error::ConvertError;
 use sztorm::Reward;
 use sztorm::state::agent::{InformationSet, ScoringInformationSet};
-use sztorm_rl::tensor_repr::{ActionTensor, ConvStateToTensor};
+use sztorm_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
 use crate::prisoner::common::RewardTable;
 use crate::prisoner::domain::{PrisonerAction, PrisonerDomain, PrisonerError, PrisonerUpdate};
 use crate::prisoner::domain::PrisonerAction::{Betray, Cover};
@@ -266,5 +266,30 @@ impl ActionTensor for PrisonerAction{
             1 => Ok(Cover),
             _ => Err(ConvertError::ActionDeserialize(format!("{}", t)))
         }
+    }
+}
+
+pub struct PrisonerInfoSetWay{}
+const PRISONER_INFOSET_SHAPE: [i64;1] = [512];
+impl WayToTensor for PrisonerInfoSetWay{
+    fn desired_shape() -> &'static [i64] {
+        &PRISONER_INFOSET_SHAPE[..]
+    }
+}
+
+impl ConvertToTensor<PrisonerInfoSetWay> for PrisonerState{
+    fn to_tensor(&self, way: &PrisonerInfoSetWay) -> Tensor {
+        let mut array = [0.0f32;2*256];
+        for i in 0..self.previous_actions().len(){
+            array[2*i] = match self.previous_actions()[i].own_action{
+                Betray =>  1.0,
+                Cover => 2.0,
+            };
+            array[2*i+1] = match self.previous_actions()[i].other_prisoner_action{
+                Betray =>  1.0,
+                Cover => 2.0,
+            };
+        }
+        Tensor::from_slice(&array[..])
     }
 }

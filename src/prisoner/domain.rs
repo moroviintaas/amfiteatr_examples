@@ -68,6 +68,13 @@ pub struct PrisonerDomain;
 pub struct PrisonerUpdate{
     pub own_action: PrisonerAction,
     pub other_prisoner_action: PrisonerAction}
+
+impl Display for PrisonerUpdate {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Update [own action: {}, opponent's action: {}]", self.own_action, self.other_prisoner_action)
+    }
+}
+
 impl StateUpdate for PrisonerUpdate{}
 
 //pub type PrisonerId = u8;

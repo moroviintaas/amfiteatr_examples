@@ -269,6 +269,7 @@ impl ActionTensor for PrisonerAction{
     }
 }
 
+#[derive(Default)]
 pub struct PrisonerInfoSetWay{}
 const PRISONER_INFOSET_SHAPE: [i64;1] = [512];
 impl WayToTensor for PrisonerInfoSetWay{

@@ -17,6 +17,7 @@ use sztorm_examples::prisoner::domain::PrisonerDomain;
 use sztorm_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
 use sztorm_examples::prisoner::env::PrisonerEnvState;
 use sztorm_rl::actor_critic::ActorCriticPolicy;
+use sztorm_rl::LearningNetworkPolicy;
 use sztorm_rl::torch_net::{A2CNet, TensorA2C};
 
 

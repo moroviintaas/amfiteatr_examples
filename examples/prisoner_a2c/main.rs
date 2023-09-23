@@ -17,7 +17,7 @@ use sztorm_examples::prisoner::domain::PrisonerDomain;
 use sztorm_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
 use sztorm_examples::prisoner::env::PrisonerEnvState;
 use sztorm_rl::actor_critic::ActorCriticPolicy;
-use sztorm_rl::LearningNetworkPolicy;
+use sztorm_rl::{LearningNetworkPolicy, TrainConfig};
 use sztorm_rl::torch_net::{A2CNet, TensorA2C};
 
 
@@ -232,7 +232,7 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
 
     let optimiser = neural_net.build_optimizer(Adam::default(), 1e-4).unwrap();
     //let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerStateTranslate {});
-    let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerInfoSetWay{});
+    let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerInfoSetWay {}, TrainConfig { gamma: 0.99 });
 
     let mut prisoner1 = AgentGenT::new(
         Janusz,

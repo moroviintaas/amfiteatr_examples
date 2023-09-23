@@ -7,7 +7,7 @@ use sztorm::comm::SyncCommEnv;
 use sztorm::env::generic::HashMapEnvT;
 use sztorm::env::{ResetEnvironment,  RoundRobinUniversalEnvironment, TracingEnv};
 use sztorm::error::SztormError;
-use sztorm_examples::prisoner::agent::{BetrayRatioPolicy, CoverPolicy, Forgive1Policy, PrisonerState, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
+use sztorm_examples::prisoner::agent::{CoverPolicy, Forgive1Policy, PrisonerState, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
 use sztorm_examples::prisoner::common::RewardTable;
 use sztorm_examples::prisoner::domain::PrisonerAction::Betray;
 use sztorm_examples::prisoner::domain::PrisonerDomain;

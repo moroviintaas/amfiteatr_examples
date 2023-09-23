@@ -279,7 +279,7 @@ impl WayToTensor for PrisonerInfoSetWay{
 }
 
 impl ConvertToTensor<PrisonerInfoSetWay> for PrisonerState{
-    fn to_tensor(&self, way: &PrisonerInfoSetWay) -> Tensor {
+    fn to_tensor(&self, _way: &PrisonerInfoSetWay) -> Tensor {
         let mut array = [0.0f32;2*256];
         for i in 0..self.previous_actions().len(){
             array[2*i] = match self.previous_actions()[i].own_action{

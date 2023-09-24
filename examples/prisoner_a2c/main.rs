@@ -1,17 +1,16 @@
 use std::collections::HashMap;
-use std::{option, thread};
+use std::{thread};
 use std::path::PathBuf;
 use clap::{Parser, ValueEnum};
 use log::LevelFilter;
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use sztorm::agent::{AgentGenT, AutomaticAgentRewarded, CommunicatingAgent, EnvRewardedAgent, InternalRewardedAgent, Policy, PolicyAgent, ResetAgent, TracingAgent};
-use sztorm::comm::{SyncComm, SyncCommAgent, SyncCommEnv};
+use sztorm::agent::{*};
+use sztorm::comm::{SyncCommAgent, SyncCommEnv};
 use sztorm::env::generic::HashMapEnvT;
-use sztorm::env::{EnvironmentState, ResetEnvironment, RoundRobinUniversalEnvironment};
+use sztorm::env::{ResetEnvironment, RoundRobinUniversalEnvironment};
 use sztorm::error::SztormError;
-use sztorm::protocol::DomainParameters;
-use sztorm_examples::prisoner::agent::{CoverPolicy, PrisonerInfoSetWay, PrisonerState, PrisonerStateTranslate, SwitchOnTwoSubsequent};
+use sztorm_examples::prisoner::agent::{*};
 use sztorm_examples::prisoner::common::RewardTable;
 use sztorm_examples::prisoner::domain::PrisonerDomain;
 use sztorm_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
@@ -149,7 +148,7 @@ impl<
         let mut trajectory_archive = Vec::with_capacity(games_in_epoch);
         for epoch in 0..epochs{
             trajectory_archive.clear();
-            for game in 0..games_in_epoch{
+            for _game in 0..games_in_epoch{
                 self.agent0.reset(self.agent0_default_state.clone());
                 self.agent1.reset(self.agent1_default_state.clone());
                 self.env.reset(self.env_default_state.clone());
@@ -209,7 +208,7 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
 
     let initial_prisoner_state = PrisonerState::new(reward_table);
 
-    let mut prisoner0 = AgentGenT::new(
+    let prisoner0 = AgentGenT::new(
         Andrzej,
         PrisonerState::new(reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
 
@@ -245,7 +244,7 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     let mut env_coms = HashMap::new();
     env_coms.insert(Andrzej, comm_env_0);
     env_coms.insert(Janusz, comm_env_1);
-    let mut env = HashMapEnvT::new(env_state, env_coms);
+    let env = HashMapEnvT::new(env_state, env_coms);
 
 
     let mut model = PrisonerModel{

@@ -3,7 +3,7 @@ use std::ops::{Index, IndexMut};
 use sztorm::Action;
 use sztorm::agent::{AgentIdentifier};
 use sztorm::error::{InternalGameError, SztormError};
-use sztorm::protocol::DomainParameters;
+use sztorm::domain::DomainParameters;
 use sztorm::state::StateUpdate;
 use crate::prisoner::domain::PrisonerId::{Andrzej, Janusz};
 

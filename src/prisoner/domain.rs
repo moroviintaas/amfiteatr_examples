@@ -1,9 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::ops::{Index, IndexMut};
-use sztorm::Action;
 use sztorm::agent::{AgentIdentifier};
 use sztorm::error::{InternalGameError, SztormError};
-use sztorm::domain::DomainParameters;
+use sztorm::domain::{Action, DomainParameters};
 use sztorm::state::StateUpdate;
 use crate::prisoner::domain::PrisonerId::{Andrzej, Janusz};
 

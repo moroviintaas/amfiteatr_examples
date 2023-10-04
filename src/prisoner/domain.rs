@@ -3,7 +3,7 @@ use std::ops::{Index, IndexMut};
 use sztorm::agent::{AgentIdentifier};
 use sztorm::error::{InternalGameError, SztormError};
 use sztorm::domain::{Action, DomainParameters};
-use sztorm::state::StateUpdate;
+//use sztorm::state::StateUpdate;
 use crate::prisoner::domain::PrisonerId::{Andrzej, Janusz};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -56,11 +56,6 @@ impl Into<SztormError<PrisonerDomain>> for PrisonerError {
 
 
 
-impl InternalGameError<PrisonerDomain> for PrisonerError{
-
-}
-
-
 #[derive(Clone, Debug)]
 pub struct PrisonerDomain;
 #[derive(Debug, Copy, Clone)]
@@ -74,7 +69,7 @@ impl Display for PrisonerUpdate {
     }
 }
 
-impl StateUpdate for PrisonerUpdate{}
+//impl StateUpdate for PrisonerUpdate{}
 
 //pub type PrisonerId = u8;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]

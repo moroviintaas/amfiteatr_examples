@@ -112,9 +112,9 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
      */
 
     env.reset(PrisonerEnvState::new(reward_table,  10));
-    let mut prisoner0 = prisoner0.do_change_policy(RandomPrisonerPolicy{});
+    let mut prisoner0 = prisoner0.transform_replace_policy(RandomPrisonerPolicy{});
     //let mut prisoner1 = prisoner1.do_change_policy(BetrayRatioPolicy{});
-    let mut prisoner1 = prisoner1.do_change_policy(SwitchOnTwoSubsequent{});
+    let mut prisoner1 = prisoner1.transform_replace_policy(SwitchOnTwoSubsequent{});
     prisoner0.reset(PrisonerState::new(reward_table));
     prisoner1.reset(PrisonerState::new(reward_table));
 

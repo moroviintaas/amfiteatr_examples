@@ -76,17 +76,17 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
 
 
 
-struct PrisonerModel<P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDomain, StateType=PrisonerState>>{
+struct PrisonerModel<P0: Policy<PrisonerDomain, InfoSetType=PrisonerState>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerState>>{
     pub env: HashMapEnvT<PrisonerDomain, PrisonerEnvState, SyncCommEnv<PrisonerDomain>>,
     pub agent0: AgentGenT<PrisonerDomain, P0, SyncCommAgent<PrisonerDomain>>,
     pub agent1: AgentGenT<PrisonerDomain, P1, SyncCommAgent<PrisonerDomain>>,
     pub env_default_state: PrisonerEnvState,
-    pub agent0_default_state: <P0 as Policy<PrisonerDomain>>::StateType,
-    pub agent1_default_state: <P1 as Policy<PrisonerDomain>>::StateType,
+    pub agent0_default_state: <P0 as Policy<PrisonerDomain>>::InfoSetType,
+    pub agent1_default_state: <P1 as Policy<PrisonerDomain>>::InfoSetType,
 
 }
 
-impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDomain, StateType=PrisonerState>> PrisonerModel<P0, P1>{
+impl <P0: Policy<PrisonerDomain, InfoSetType=PrisonerState>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerState>> PrisonerModel<P0, P1>{
 
     pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), SztormError<PrisonerDomain>>{
         let mut sum_rewards_0_uni = 0.0;
@@ -132,7 +132,7 @@ impl <P0: Policy<PrisonerDomain, StateType=PrisonerState>, P1: Policy<PrisonerDo
 
 impl<
     P0: Policy<PrisonerDomain,
-        StateType=PrisonerState>
+        InfoSetType=PrisonerState>
 > PrisonerModel<
     P0,
     ActorCriticPolicy<

@@ -58,9 +58,9 @@ impl Display for PrisonerState{
 pub struct CoverPolicy{}
 
 impl Policy<PrisonerDomain> for CoverPolicy{
-    type StateType = PrisonerState;
+    type InfoSetType = PrisonerState;
 
-    fn select_action(&self, _state: &Self::StateType) -> Option<PrisonerAction> {
+    fn select_action(&self, _state: &Self::InfoSetType) -> Option<PrisonerAction> {
         //state._select_action(Cover);
         Some(Cover)
     }
@@ -69,9 +69,9 @@ impl Policy<PrisonerDomain> for CoverPolicy{
 pub struct Forgive1Policy{}
 
 impl Policy<PrisonerDomain> for Forgive1Policy{
-    type StateType = PrisonerState;
+    type InfoSetType = PrisonerState;
 
-    fn select_action(&self, state: &Self::StateType) -> Option<PrisonerAction> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
         let enemy_betrayals = state.previous_actions().iter().filter(| &step|{
             step.other_prisoner_action == Betray
         }).count();
@@ -89,9 +89,9 @@ impl Policy<PrisonerDomain> for Forgive1Policy{
 pub struct BetrayRatioPolicy{}
 
 impl Policy<PrisonerDomain> for BetrayRatioPolicy{
-    type StateType = PrisonerState;
+    type InfoSetType = PrisonerState;
 
-    fn select_action(&self, state: &Self::StateType) -> Option<PrisonerAction> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
         let betrayed = state.previous_actions().iter()
             .filter(|round| round.other_prisoner_action == Betray)
             .count();
@@ -114,10 +114,10 @@ pub struct RandomPrisonerPolicy{}
 
 
 impl Policy<PrisonerDomain> for RandomPrisonerPolicy{
-    type StateType = PrisonerState;
+    type InfoSetType = PrisonerState;
 
 
-    fn select_action(&self, state: &Self::StateType) -> Option<PrisonerAction> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
         let mut rng = rand::thread_rng();
         state.available_actions().into_iter().choose(&mut rng).and_then(|a|{
             //state._select_action(a);
@@ -132,9 +132,9 @@ impl Policy<PrisonerDomain> for RandomPrisonerPolicy{
 pub struct SwitchOnTwoSubsequent{}
 
 impl Policy<PrisonerDomain> for SwitchOnTwoSubsequent{
-    type StateType = PrisonerState;
+    type InfoSetType = PrisonerState;
 
-    fn select_action(&self, state: &Self::StateType) -> Option<PrisonerAction> {
+    fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
 
         if let Some(i_update) = state.previous_actions().last(){
             let mut other_action = i_update.other_prisoner_action;

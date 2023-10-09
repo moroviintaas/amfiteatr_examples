@@ -1,10 +1,9 @@
 use std::fmt::{Display, Formatter};
 use rand::seq::IteratorRandom;
 use tch::Tensor;
-use sztorm::agent::Policy;
+use sztorm::agent::{InformationSet, Policy, ScoringInformationSet};
 use sztorm::domain::Reward;
 use sztorm::error::ConvertError;
-use sztorm::state::agent::{InformationSet, ScoringInformationSet};
 use sztorm_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
 use crate::prisoner::common::RewardTable;
 use crate::prisoner::domain::{PrisonerAction, PrisonerDomain, PrisonerError, PrisonerUpdate};

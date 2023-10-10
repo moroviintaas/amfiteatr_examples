@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use rand::seq::IteratorRandom;
 use tch::Tensor;
-use sztorm::agent::{InformationSet, Policy, ScoringInformationSet};
+use sztorm::agent::{InformationSet, Policy, PresentPossibleActions, ScoringInformationSet};
 use sztorm::domain::Reward;
 use sztorm::error::ConvertError;
 use sztorm_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
@@ -10,14 +10,14 @@ use crate::prisoner::domain::{PrisonerAction, PrisonerDomain, PrisonerError, Pri
 use crate::prisoner::domain::PrisonerAction::{Betray, Cover};
 
 #[derive(Clone, Debug)]
-pub struct PrisonerState{
+pub struct PrisonerInfoSet {
     previous_actions: Vec<PrisonerUpdate>,
     reward_table: RewardTable,
     //last_action: Cell<Option<PrisonerAction>>
 
 }
 
-impl PrisonerState{
+impl PrisonerInfoSet {
     pub fn new(reward_table: RewardTable) -> Self{
         Self{
             reward_table,
@@ -41,7 +41,7 @@ impl PrisonerState{
     }
 }
 
-impl Display for PrisonerState{
+impl Display for PrisonerInfoSet {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Rounds: {} |", self.previous_actions.len())?;
         let mut s = self.previous_actions.iter().fold( String::new(),|mut acc, update|{
@@ -57,7 +57,7 @@ impl Display for PrisonerState{
 pub struct CoverPolicy{}
 
 impl Policy<PrisonerDomain> for CoverPolicy{
-    type InfoSetType = PrisonerState;
+    type InfoSetType = PrisonerInfoSet;
 
     fn select_action(&self, _state: &Self::InfoSetType) -> Option<PrisonerAction> {
         //state._select_action(Cover);
@@ -68,7 +68,7 @@ impl Policy<PrisonerDomain> for CoverPolicy{
 pub struct Forgive1Policy{}
 
 impl Policy<PrisonerDomain> for Forgive1Policy{
-    type InfoSetType = PrisonerState;
+    type InfoSetType = PrisonerInfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
         let enemy_betrayals = state.previous_actions().iter().filter(| &step|{
@@ -88,7 +88,7 @@ impl Policy<PrisonerDomain> for Forgive1Policy{
 pub struct BetrayRatioPolicy{}
 
 impl Policy<PrisonerDomain> for BetrayRatioPolicy{
-    type InfoSetType = PrisonerState;
+    type InfoSetType = PrisonerInfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
         let betrayed = state.previous_actions().iter()
@@ -113,7 +113,7 @@ pub struct RandomPrisonerPolicy{}
 
 
 impl Policy<PrisonerDomain> for RandomPrisonerPolicy{
-    type InfoSetType = PrisonerState;
+    type InfoSetType = PrisonerInfoSet;
 
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
@@ -131,7 +131,7 @@ impl Policy<PrisonerDomain> for RandomPrisonerPolicy{
 pub struct SwitchOnTwoSubsequent{}
 
 impl Policy<PrisonerDomain> for SwitchOnTwoSubsequent{
-    type InfoSetType = PrisonerState;
+    type InfoSetType = PrisonerInfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
 
@@ -152,43 +152,29 @@ impl Policy<PrisonerDomain> for SwitchOnTwoSubsequent{
     }
 }
 
-impl InformationSet<PrisonerDomain> for PrisonerState{
-    type ActionIteratorType = [PrisonerAction;2];
-
-    fn available_actions(&self) -> Self::ActionIteratorType {
-        [Betray, Cover]
-    }
-
+impl InformationSet<PrisonerDomain> for PrisonerInfoSet {
 
     fn is_action_valid(&self, _action: &PrisonerAction) -> bool {
         true
     }
 
     fn update(&mut self, update: PrisonerUpdate) -> Result<(), PrisonerError> {
-        /*
-        let last = self.last_action.get();
 
-        if let Some(my_action) = last{
-
-            if my_action == update.own_action{
-                self.previous_actions.push(update);
-                self.last_action.set(None);
-                Ok(())
-            } else{
-                Err(PrisonerError::DifferentActionPerformed {chosen: my_action, logged: update.own_action})
-            }
-
-        } else {
-            Err(PrisonerError::NoLastAction(update.own_action))
-        }
-
-         */
         self.previous_actions.push(update);
         Ok(())
     }
+
 }
 
-impl ScoringInformationSet<PrisonerDomain> for PrisonerState{
+impl PresentPossibleActions<PrisonerDomain> for PrisonerInfoSet {
+    type ActionIteratorType = [PrisonerAction;2];
+
+    fn available_actions(&self) -> Self::ActionIteratorType {
+        [Betray, Cover]
+    }
+}
+
+impl ScoringInformationSet<PrisonerDomain> for PrisonerInfoSet {
     type RewardType = f64;
 
     fn current_subjective_score(&self) -> Self::RewardType {
@@ -216,8 +202,8 @@ pub struct PrisonerStateTranslate{
 
 }
 
-impl ConvStateToTensor<PrisonerState> for PrisonerStateTranslate{
-    fn make_tensor(&self, t: &PrisonerState) -> Tensor {
+impl ConvStateToTensor<PrisonerInfoSet> for PrisonerStateTranslate{
+    fn make_tensor(&self, t: &PrisonerInfoSet) -> Tensor {
         let mut array = [0.0f32;2*256];
         for i in 0..t.previous_actions().len(){
             array[2*i] = match t.previous_actions()[i].own_action{
@@ -277,7 +263,7 @@ impl WayToTensor for PrisonerInfoSetWay{
     }
 }
 
-impl ConvertToTensor<PrisonerInfoSetWay> for PrisonerState{
+impl ConvertToTensor<PrisonerInfoSetWay> for PrisonerInfoSet {
     fn to_tensor(&self, _way: &PrisonerInfoSetWay) -> Tensor {
         let mut array = [0.0f32;2*256];
         for i in 0..self.previous_actions().len(){

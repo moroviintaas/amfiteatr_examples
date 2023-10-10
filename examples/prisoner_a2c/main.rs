@@ -76,7 +76,7 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
 
 
 
-struct PrisonerModel<P0: Policy<PrisonerDomain, InfoSetType=PrisonerState>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerState>>{
+struct PrisonerModel<P0: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>>{
     pub env: HashMapEnvT<PrisonerDomain, PrisonerEnvState, SyncCommEnv<PrisonerDomain>>,
     pub agent0: AgentGenT<PrisonerDomain, P0, SyncCommAgent<PrisonerDomain>>,
     pub agent1: AgentGenT<PrisonerDomain, P1, SyncCommAgent<PrisonerDomain>>,
@@ -86,7 +86,7 @@ struct PrisonerModel<P0: Policy<PrisonerDomain, InfoSetType=PrisonerState>, P1: 
 
 }
 
-impl <P0: Policy<PrisonerDomain, InfoSetType=PrisonerState>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerState>> PrisonerModel<P0, P1>{
+impl <P0: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>> PrisonerModel<P0, P1>{
 
     pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), SztormError<PrisonerDomain>>{
         let mut sum_rewards_0_uni = 0.0;
@@ -132,12 +132,12 @@ impl <P0: Policy<PrisonerDomain, InfoSetType=PrisonerState>, P1: Policy<Prisoner
 
 impl<
     P0: Policy<PrisonerDomain,
-        InfoSetType=PrisonerState>
+        InfoSetType=PrisonerInfoSet>
 > PrisonerModel<
     P0,
     ActorCriticPolicy<
         PrisonerDomain,
-        PrisonerState,
+        PrisonerInfoSet,
         //PrisonerStateTranslate
         PrisonerInfoSetWay
     >
@@ -206,11 +206,11 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
     let (comm_env_0, comm_prisoner_0) = SyncCommEnv::new_pair();
     let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
 
-    let initial_prisoner_state = PrisonerState::new(reward_table);
+    let initial_prisoner_state = PrisonerInfoSet::new(reward_table);
 
     let prisoner0 = AgentGenT::new(
         Andrzej,
-        PrisonerState::new(reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
+        PrisonerInfoSet::new(reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
 
 
 
@@ -235,7 +235,7 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
 
     let mut prisoner1 = AgentGenT::new(
         Janusz,
-        PrisonerState::new(reward_table), comm_prisoner_1, n_policy);
+        PrisonerInfoSet::new(reward_table), comm_prisoner_1, n_policy);
 
     if let Some(var_store_file) = args.load_file{
         prisoner1.policy_mut().network_mut().var_store_mut().load(var_store_file)

@@ -130,8 +130,8 @@ fn main() -> Result<(), SztormError<PrisonerDomain>>{
         });
     });
 
-    let prisoner0_betrayals = prisoner0.state().count_actions(Betray);
-    let prisoner1_betrayals = prisoner1.state().count_actions(Betray);
+    let prisoner0_betrayals = prisoner0.info_set().count_actions(Betray);
+    let prisoner1_betrayals = prisoner1.info_set().count_actions(Betray);
 
     println!("Prisoner 0 betrayed {:?} times and Prisoner 1 betrayed {:?} times.", prisoner0_betrayals, prisoner1_betrayals);
 

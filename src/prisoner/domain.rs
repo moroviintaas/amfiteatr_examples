@@ -46,13 +46,19 @@ pub enum PrisonerError{
     ActionOutOfOrder(PrisonerId),
 }
 
-
+/*
 impl Into<SztormError<PrisonerDomain>> for PrisonerError {
     fn into(self) -> SztormError<PrisonerDomain> {
         SztormError::Game(self)
     }
 }
 
+ */
+impl From<PrisonerError> for SztormError<PrisonerDomain>{
+    fn from(value: PrisonerError) -> Self {
+        SztormError::Game(value)
+    }
+}
 
 
 #[derive(Clone, Debug)]

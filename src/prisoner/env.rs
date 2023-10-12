@@ -112,15 +112,16 @@ impl EnvironmentState<PrisonerDomain> for PrisonerEnvState{
         self.last_round_actions[Andrzej] = None;
         self.last_round_actions[Janusz] = None;
 
-        let mut updates = Vec::new();
-        updates.push((Andrzej, PrisonerUpdate{
-            own_action: a0,
-            other_prisoner_action: a1
-        }));
-        updates.push((Janusz, PrisonerUpdate{
-            own_action: a1,
-            other_prisoner_action: a0
-        }));
+        let updates = vec![
+            (Andrzej, PrisonerUpdate{
+                own_action: a0,
+                other_prisoner_action: a1
+            }),
+            (Janusz, PrisonerUpdate{
+                own_action: a1,
+                other_prisoner_action: a0
+            })
+        ];
 
         Ok(updates)
 

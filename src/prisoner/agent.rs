@@ -118,10 +118,7 @@ impl Policy<PrisonerDomain> for RandomPrisonerPolicy{
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<PrisonerAction> {
         let mut rng = rand::thread_rng();
-        state.available_actions().into_iter().choose(&mut rng).and_then(|a|{
-            //state._select_action(a);
-            Some(a)
-        })
+        state.available_actions().into_iter().choose(&mut rng)
 
 
     }

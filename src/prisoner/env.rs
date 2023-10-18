@@ -1,5 +1,5 @@
 use std::fmt::{Display, Formatter};
-use sztorm::env::{EnvironmentState, EnvironmentStateUniScore};
+use sztorm::env::{EnvStateSequential, EnvironmentStateUniScore};
 use sztorm::domain::DomainParameters;
 use crate::prisoner::common::RewardTable;
 use crate::prisoner::domain::{PRISONERS, PrisonerAction, PrisonerDomain, PrisonerError, PrisonerId, PrisonerUpdate, PrisonerMap};
@@ -60,7 +60,7 @@ impl Display for PrisonerEnvState{
     }
 }
 
-impl EnvironmentState<PrisonerDomain> for PrisonerEnvState{
+impl EnvStateSequential<PrisonerDomain> for PrisonerEnvState{
     type Updates = Vec<(PrisonerId, PrisonerUpdate)>;
 
     fn current_player(&self) -> Option<PrisonerId> {

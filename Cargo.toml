@@ -13,8 +13,8 @@ name = "prisoner_a2c"
 
 [dependencies]
 
-amfi = {path = "../sztorm" }
-amfi_rl = {path = "../sztorm_rl" }
+amfi = {path = "../amfi" }
+amfi_rl = {path = "../amfi_rl" }
 rand = "0.8.5"
 log = "0.4.19"
 thiserror = "1.0.40"

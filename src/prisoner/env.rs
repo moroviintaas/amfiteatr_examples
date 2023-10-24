@@ -1,6 +1,6 @@
 use std::fmt::{Display, Formatter};
-use sztorm::env::{EnvStateSequential, EnvironmentStateUniScore};
-use sztorm::domain::DomainParameters;
+use amfi::env::{EnvStateSequential, EnvironmentStateUniScore};
+use amfi::domain::DomainParameters;
 use crate::prisoner::common::RewardTable;
 use crate::prisoner::domain::{PRISONERS, PrisonerAction, PrisonerDomain, PrisonerError, PrisonerId, PrisonerUpdate, PrisonerMap};
 use crate::prisoner::domain::PrisonerError::{ActionAfterGameOver, ActionOutOfOrder};

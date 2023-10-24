@@ -2,17 +2,17 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::thread;
 use log::LevelFilter;
-use sztorm::agent::{AgentGenT, AutomaticAgentRewarded, ResetAgent, StatefulAgent, TracingAgent};
-use sztorm::comm::SyncCommEnv;
-use sztorm::env::generic::HashMapEnvT;
-use sztorm::env::{ResetEnvironment,  RoundRobinUniversalEnvironment, TracingEnv};
-use sztorm::error::SztormError;
-use sztorm_examples::prisoner::agent::{CoverPolicy, Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
-use sztorm_examples::prisoner::common::RewardTable;
-use sztorm_examples::prisoner::domain::PrisonerAction::Betray;
-use sztorm_examples::prisoner::domain::PrisonerDomain;
-use sztorm_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
-use sztorm_examples::prisoner::env::PrisonerEnvState;
+use amfi::agent::{AgentGenT, AutomaticAgentRewarded, ResetAgent, StatefulAgent, TracingAgent};
+use amfi::comm::SyncCommEnv;
+use amfi::env::generic::HashMapEnvT;
+use amfi::env::{ResetEnvironment,  RoundRobinUniversalEnvironment, TracingEnv};
+use amfi::error::AmfiError;
+use amfi_examples::prisoner::agent::{CoverPolicy, Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
+use amfi_examples::prisoner::common::RewardTable;
+use amfi_examples::prisoner::domain::PrisonerAction::Betray;
+use amfi_examples::prisoner::domain::PrisonerDomain;
+use amfi_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
+use amfi_examples::prisoner::env::PrisonerEnvState;
 
 
 pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Result<(), fern::InitError> {
@@ -43,7 +43,7 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
 
 
 
-fn main() -> Result<(), SztormError<PrisonerDomain>>{
+fn main() -> Result<(), AmfiError<PrisonerDomain>>{
     println!("Hello prisoners;");
     setup_logger(LevelFilter::Debug, &None).unwrap();
 

@@ -1,10 +1,10 @@
 use std::fmt::{Display, Formatter};
 use rand::seq::IteratorRandom;
 use tch::Tensor;
-use sztorm::agent::{InformationSet, Policy, PresentPossibleActions, ScoringInformationSet};
-use sztorm::domain::Reward;
-use sztorm::error::ConvertError;
-use sztorm_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
+use amfi::agent::{InformationSet, Policy, PresentPossibleActions, ScoringInformationSet};
+use amfi::domain::Reward;
+use amfi::error::ConvertError;
+use amfi_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
 use crate::prisoner::common::RewardTable;
 use crate::prisoner::domain::{PrisonerAction, PrisonerDomain, PrisonerError, PrisonerUpdate};
 use crate::prisoner::domain::PrisonerAction::{Betray, Cover};
@@ -227,9 +227,9 @@ impl ActionTensor for PrisonerAction{
 
     /// ```
     /// use tch::Tensor;
-    /// use sztorm_examples::prisoner::domain::PrisonerAction;
-    /// use sztorm_examples::prisoner::domain::PrisonerAction::{Betray, Cover};
-    /// use sztorm_rl::tensor_repr::ActionTensor;
+    /// use amfi_examples::prisoner::domain::PrisonerAction;
+    /// use amfi_examples::prisoner::domain::PrisonerAction::{Betray, Cover};
+    /// use amfi_rl::tensor_repr::ActionTensor;
     /// let t = Tensor::from_slice(&[1i64;1]);
     /// let action = PrisonerAction::try_from_tensor(&t).unwrap();
     /// assert_eq!(action, Cover);

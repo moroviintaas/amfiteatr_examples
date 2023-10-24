@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::ops::{Index, IndexMut};
-use sztorm::agent::{AgentIdentifier};
-use sztorm::error::{SztormError};
-use sztorm::domain::{Action, DomainParameters};
+use amfi::agent::{AgentIdentifier};
+use amfi::error::{AmfiError};
+use amfi::domain::{Action, DomainParameters};
 use crate::prisoner::domain::PrisonerId::{Andrzej, Janusz};
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
@@ -47,16 +47,16 @@ pub enum PrisonerError{
 }
 
 /*
-impl Into<SztormError<PrisonerDomain>> for PrisonerError {
-    fn into(self) -> SztormError<PrisonerDomain> {
-        SztormError::Game(self)
+impl Into<AmfiError<PrisonerDomain>> for PrisonerError {
+    fn into(self) -> AmfiError<PrisonerDomain> {
+        AmfiError::Game(self)
     }
 }
 
  */
-impl From<PrisonerError> for SztormError<PrisonerDomain>{
+impl From<PrisonerError> for AmfiError<PrisonerDomain>{
     fn from(value: PrisonerError) -> Self {
-        SztormError::Game(value)
+        AmfiError::Game(value)
     }
 }
 

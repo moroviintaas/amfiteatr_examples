@@ -5,19 +5,19 @@ use clap::{Parser, ValueEnum};
 use log::LevelFilter;
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use sztorm::agent::{*};
-use sztorm::comm::{SyncCommAgent, SyncCommEnv};
-use sztorm::env::generic::HashMapEnvT;
-use sztorm::env::{ResetEnvironment, RoundRobinUniversalEnvironment};
-use sztorm::error::SztormError;
-use sztorm_examples::prisoner::agent::{*};
-use sztorm_examples::prisoner::common::RewardTable;
-use sztorm_examples::prisoner::domain::PrisonerDomain;
-use sztorm_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
-use sztorm_examples::prisoner::env::PrisonerEnvState;
-use sztorm_rl::actor_critic::ActorCriticPolicy;
-use sztorm_rl::{LearningNetworkPolicy, TrainConfig};
-use sztorm_rl::torch_net::{A2CNet, TensorA2C};
+use amfi::agent::{*};
+use amfi::comm::{SyncCommAgent, SyncCommEnv};
+use amfi::env::generic::HashMapEnvT;
+use amfi::env::{ResetEnvironment, RoundRobinUniversalEnvironment};
+use amfi::error::AmfiError;
+use amfi_examples::prisoner::agent::{*};
+use amfi_examples::prisoner::common::RewardTable;
+use amfi_examples::prisoner::domain::PrisonerDomain;
+use amfi_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
+use amfi_examples::prisoner::env::PrisonerEnvState;
+use amfi_rl::actor_critic::ActorCriticPolicy;
+use amfi_rl::{LearningNetworkPolicy, TrainConfig};
+use amfi_rl::torch_net::{A2CNet, TensorA2C};
 
 
 
@@ -88,7 +88,7 @@ struct PrisonerModel<P0: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>, P1
 
 impl <P0: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>> PrisonerModel<P0, P1>{
 
-    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), SztormError<PrisonerDomain>>{
+    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), AmfiError<PrisonerDomain>>{
         let mut sum_rewards_0_uni = 0.0;
         let mut sum_rewards_1_uni = 0.0;
         let mut sum_rewards_0_sub = 0.0;
@@ -143,7 +143,7 @@ impl<
     >
 >{
 
-    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize, reward_source: RewardSource) -> Result<(), SztormError<PrisonerDomain>>{
+    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize, reward_source: RewardSource) -> Result<(), AmfiError<PrisonerDomain>>{
 
         let mut trajectory_archive = Vec::with_capacity(games_in_epoch);
         for epoch in 0..epochs{
@@ -185,7 +185,7 @@ impl<
 
 }
 
-fn main() -> Result<(), SztormError<PrisonerDomain>>{
+fn main() -> Result<(), AmfiError<PrisonerDomain>>{
     let device = Device::Cpu;
 
     let args = ExampleOptions::parse();

@@ -2,10 +2,10 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::thread;
 use log::LevelFilter;
-use amfi::agent::{AgentGenT, AutomaticAgentRewarded, ResetAgent, StatefulAgent, TracingAgent};
+use amfi::agent::{AgentGenT, AutomaticAgentRewarded, ReinitAgent, StatefulAgent, TracingAgent};
 use amfi::comm::SyncCommEnv;
 use amfi::env::generic::HashMapEnvT;
-use amfi::env::{ResetEnvironment,  RoundRobinUniversalEnvironment, TracingEnv};
+use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment, TracingEnv};
 use amfi::error::AmfiError;
 use amfi_examples::prisoner::agent::{CoverPolicy, Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
 use amfi_examples::prisoner::common::RewardTable;
@@ -111,12 +111,12 @@ fn main() -> Result<(), AmfiError<PrisonerDomain>>{
 
      */
 
-    env.reset(PrisonerEnvState::new(reward_table,  10));
+    env.reinit(PrisonerEnvState::new(reward_table, 10));
     let mut prisoner0 = prisoner0.transform_replace_policy(RandomPrisonerPolicy{});
     //let mut prisoner1 = prisoner1.do_change_policy(BetrayRatioPolicy{});
     let mut prisoner1 = prisoner1.transform_replace_policy(SwitchOnTwoSubsequent{});
-    prisoner0.reset(PrisonerInfoSet::new(reward_table));
-    prisoner1.reset(PrisonerInfoSet::new(reward_table));
+    prisoner0.reinit(PrisonerInfoSet::new(reward_table));
+    prisoner1.reinit(PrisonerInfoSet::new(reward_table));
 
     thread::scope(|s|{
         s.spawn(||{

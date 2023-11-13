@@ -8,7 +8,7 @@ use tch::nn::{Adam, VarStore};
 use amfi::agent::{*};
 use amfi::comm::{SyncCommAgent, SyncCommEnv};
 use amfi::env::generic::HashMapEnvT;
-use amfi::env::{ResetEnvironment, RoundRobinUniversalEnvironment};
+use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment};
 use amfi::error::AmfiError;
 use amfi_examples::prisoner::agent::{*};
 use amfi_examples::prisoner::common::RewardTable;
@@ -96,9 +96,9 @@ impl <P0: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<Prison
 
 
         for _ in 0..number_of_tries{
-            self.env.reset(self.env_default_state.clone());
-            self.agent0.reset(self.agent0_default_state.clone());
-            self.agent1.reset(self.agent1_default_state.clone());
+            self.env.reinit(self.env_default_state.clone());
+            self.agent0.reinit(self.agent0_default_state.clone());
+            self.agent1.reinit(self.agent1_default_state.clone());
             thread::scope(|s|{
                 s.spawn(||{
                     self.env.run_round_robin_uni_rewards().unwrap();
@@ -149,9 +149,9 @@ impl<
         for epoch in 0..epochs{
             trajectory_archive.clear();
             for _game in 0..games_in_epoch{
-                self.agent0.reset(self.agent0_default_state.clone());
-                self.agent1.reset(self.agent1_default_state.clone());
-                self.env.reset(self.env_default_state.clone());
+                self.agent0.reinit(self.agent0_default_state.clone());
+                self.agent1.reinit(self.agent1_default_state.clone());
+                self.env.reinit(self.env_default_state.clone());
 
                 thread::scope(|s|{
                     s.spawn(||{

@@ -171,8 +171,8 @@ impl<
             }
 
             match reward_source{
-                RewardSource::Env => self.agent1.policy_mut().train_on_trajectories_env_reward(&trajectory_archive[..], 0.99).unwrap(),
-                RewardSource::State => self.agent1.policy_mut().train_on_trajectories_info_set_rewards(&trajectory_archive[..], 0.99).unwrap(),
+                RewardSource::Env => self.agent1.policy_mut().train_on_trajectories_env_reward(&trajectory_archive[..]).unwrap(),
+                RewardSource::State => self.agent1.policy_mut().train_on_trajectories_info_set_rewards(&trajectory_archive[..]).unwrap(),
             };
 
             let scores = self.evaluate(1000)?;

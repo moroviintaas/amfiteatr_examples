@@ -21,4 +21,4 @@ thiserror = "1.0.40"
 fern = "0.6.2"
 chrono = "0.4.26"
 tch = "0.14.0"
-clap = "4.3.10"
+clap = {version = "4.3.10", features = ["derive"]}

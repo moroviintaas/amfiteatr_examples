@@ -3,21 +3,23 @@ use std::ops::{Index, IndexMut};
 use amfi::agent::{AgentIdentifier};
 use amfi::error::{AmfiError};
 use amfi::domain::{Action, DomainParameters};
-use crate::prisoner::domain::PrisonerId::{Andrzej, Janusz};
+use crate::classic::domain::PrisonerId::{Andrzej, Janusz};
+use enum_map::Enum;
+use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq)]
-pub enum PrisonerAction{
-    Betray,
-    Cover
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Enum, Serialize, Deserialize)]
+pub enum ClassicAction {
+    Defect,
+    Cooperate
 }
 
-impl Display for PrisonerAction {
+impl Display for ClassicAction {
 
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         if f.alternate(){
             match self{
-                PrisonerAction::Betray => write!(f, "B"),
-                PrisonerAction::Cover => write!(f, "C")
+                ClassicAction::Defect => write!(f, "B"),
+                ClassicAction::Cooperate => write!(f, "C")
             }
         } else{
             write!(f, "{:?}", self)
@@ -27,23 +29,25 @@ impl Display for PrisonerAction {
 }
 
 
-impl Action for PrisonerAction{}
+impl Action for ClassicAction {}
 //--------------------------------------
 
 
 #[derive(thiserror::Error, Debug, PartialEq, Clone)]
-pub enum PrisonerError{
+pub enum ClassicGameError {
     #[error("Performed different action (chosen: {chosen:?}, logged: {logged:?})")]
     DifferentActionPerformed{
-        chosen: PrisonerAction,
-        logged: PrisonerAction
+        chosen: ClassicAction,
+        logged: ClassicAction
     },
     #[error("Environment logged action {0}, but none was performed")]
-    NoLastAction(PrisonerAction),
+    NoLastAction(ClassicAction),
     #[error("Player: {0} played after GameOver")]
     ActionAfterGameOver(PrisonerId),
     #[error("Player: {0} played out of order")]
     ActionOutOfOrder(PrisonerId),
+    #[error("Value can't be probability: {0}")]
+    NotAProbability(f64),
 }
 
 /*
@@ -54,19 +58,20 @@ impl Into<AmfiError<PrisonerDomain>> for PrisonerError {
 }
 
  */
-impl From<PrisonerError> for AmfiError<PrisonerDomain>{
-    fn from(value: PrisonerError) -> Self {
+impl From<ClassicGameError> for AmfiError<ClassicGameDomain>{
+    fn from(value: ClassicGameError) -> Self {
         AmfiError::Game(value)
     }
 }
 
 
 #[derive(Clone, Debug)]
-pub struct PrisonerDomain;
+pub struct ClassicGameDomain;
 #[derive(Debug, Copy, Clone)]
 pub struct PrisonerUpdate{
-    pub own_action: PrisonerAction,
-    pub other_prisoner_action: PrisonerAction}
+    pub own_action: ClassicAction,
+    pub other_prisoner_action: ClassicAction
+}
 
 impl Display for PrisonerUpdate {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -144,13 +149,13 @@ impl<T> IndexMut<PrisonerId> for PrisonerMap<T>{
 
 pub const PRISONERS:[PrisonerId;2] = [PrisonerId::Andrzej, PrisonerId::Janusz];
 
-pub type PrisonerReward = i32;
+pub type IntReward = i32;
 
 
-impl DomainParameters for PrisonerDomain{
-    type ActionType = PrisonerAction;
-    type GameErrorType = PrisonerError;
+impl DomainParameters for ClassicGameDomain {
+    type ActionType = ClassicAction;
+    type GameErrorType = ClassicGameError;
     type UpdateType = PrisonerUpdate;
     type AgentId = PrisonerId;
-    type UniversalReward = PrisonerReward;
+    type UniversalReward = IntReward;
 }

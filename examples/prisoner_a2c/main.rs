@@ -10,11 +10,11 @@ use amfi::comm::{SyncCommAgent, SyncCommEnv};
 use amfi::env::generic::HashMapEnvT;
 use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment};
 use amfi::error::AmfiError;
-use amfi_examples::prisoner::agent::{*};
-use amfi_examples::prisoner::common::RewardTable;
-use amfi_examples::prisoner::domain::PrisonerDomain;
-use amfi_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
-use amfi_examples::prisoner::env::PrisonerEnvState;
+use amfi_examples::classic::agent::{*};
+use amfi_examples::classic::common::SymmetricRewardTableInt;
+use amfi_examples::classic::domain::ClassicGameDomain;
+use amfi_examples::classic::domain::PrisonerId::{Andrzej, Janusz};
+use amfi_examples::classic::env::PrisonerEnvState;
 use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
 use amfi_rl::torch_net::{A2CNet, TensorA2C};
@@ -76,19 +76,19 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
 
 
 
-struct PrisonerModel<P0: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>>{
-    pub env: HashMapEnvT<PrisonerDomain, PrisonerEnvState, SyncCommEnv<PrisonerDomain>>,
-    pub agent0: AgentGenT<PrisonerDomain, P0, SyncCommAgent<PrisonerDomain>>,
-    pub agent1: AgentGenT<PrisonerDomain, P1, SyncCommAgent<PrisonerDomain>>,
+struct PrisonerModel<P0: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>>{
+    pub env: HashMapEnvT<ClassicGameDomain, PrisonerEnvState, SyncCommEnv<ClassicGameDomain>>,
+    pub agent0: AgentGenT<ClassicGameDomain, P0, SyncCommAgent<ClassicGameDomain>>,
+    pub agent1: AgentGenT<ClassicGameDomain, P1, SyncCommAgent<ClassicGameDomain>>,
     pub env_default_state: PrisonerEnvState,
-    pub agent0_default_state: <P0 as Policy<PrisonerDomain>>::InfoSetType,
-    pub agent1_default_state: <P1 as Policy<PrisonerDomain>>::InfoSetType,
+    pub agent0_default_state: <P0 as Policy<ClassicGameDomain>>::InfoSetType,
+    pub agent1_default_state: <P1 as Policy<ClassicGameDomain>>::InfoSetType,
 
 }
 
-impl <P0: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>> PrisonerModel<P0, P1>{
+impl <P0: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>> PrisonerModel<P0, P1>{
 
-    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), AmfiError<PrisonerDomain>>{
+    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), AmfiError<ClassicGameDomain>>{
         let mut sum_rewards_0_uni = 0.0;
         let mut sum_rewards_1_uni = 0.0;
         let mut sum_rewards_0_sub = 0.0;
@@ -131,19 +131,19 @@ impl <P0: Policy<PrisonerDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<Prison
 }
 
 impl<
-    P0: Policy<PrisonerDomain,
+    P0: Policy<ClassicGameDomain,
         InfoSetType=PrisonerInfoSet>
 > PrisonerModel<
     P0,
     ActorCriticPolicy<
-        PrisonerDomain,
+        ClassicGameDomain,
         PrisonerInfoSet,
         //PrisonerStateTranslate
         PrisonerInfoSetWay
     >
 >{
 
-    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize, reward_source: RewardSource) -> Result<(), AmfiError<PrisonerDomain>>{
+    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize, reward_source: RewardSource) -> Result<(), AmfiError<ClassicGameDomain>>{
 
         let mut trajectory_archive = Vec::with_capacity(games_in_epoch);
         for epoch in 0..epochs{
@@ -185,7 +185,7 @@ impl<
 
 }
 
-fn main() -> Result<(), AmfiError<PrisonerDomain>>{
+fn main() -> Result<(), AmfiError<ClassicGameDomain>>{
     let device = Device::Cpu;
 
     let args = ExampleOptions::parse();
@@ -193,12 +193,15 @@ fn main() -> Result<(), AmfiError<PrisonerDomain>>{
     //setup_logger(LevelFilter::Debug, &None).unwrap();
     setup_logger(args.log_level, &args.log_file).unwrap();
 
-    let reward_table = RewardTable{
-        cover_v_cover: 5,
-        betray_v_cover: 10,
-        betray_v_betray: 3,
-        cover_v_betray: 1
+    let reward_table = SymmetricRewardTableInt::new(5, 1, 10, 3);
+    /*{
+        coop_when_coop: 5,
+        defect_when_coop: 10,
+        defect_when_defect: 3,
+        coop_when_defect: 1
     };
+
+     */
 
     let initial_env_state = PrisonerEnvState::new(reward_table, 10);
     let env_state = initial_env_state.clone();
@@ -235,7 +238,7 @@ fn main() -> Result<(), AmfiError<PrisonerDomain>>{
 
     let mut prisoner1 = AgentGenT::new(
         Janusz,
-        PrisonerInfoSet::new(reward_table), comm_prisoner_1, n_policy);
+        PrisonerInfoSet::new(reward_table.clone()), comm_prisoner_1, n_policy);
 
     if let Some(var_store_file) = args.load_file{
         prisoner1.policy_mut().network_mut().var_store_mut().load(var_store_file)

@@ -7,12 +7,12 @@ use amfi::comm::SyncCommEnv;
 use amfi::env::generic::HashMapEnvT;
 use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment, TracingEnv};
 use amfi::error::AmfiError;
-use amfi_examples::prisoner::agent::{CoverPolicy, Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
-use amfi_examples::prisoner::common::RewardTable;
-use amfi_examples::prisoner::domain::PrisonerAction::Betray;
-use amfi_examples::prisoner::domain::PrisonerDomain;
-use amfi_examples::prisoner::domain::PrisonerId::{Andrzej, Janusz};
-use amfi_examples::prisoner::env::PrisonerEnvState;
+use amfi_examples::classic::agent::{CoverPolicy, Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
+use amfi_examples::classic::common::SymmetricRewardTableInt;
+use amfi_examples::classic::domain::ClassicAction::Defect;
+use amfi_examples::classic::domain::ClassicGameDomain;
+use amfi_examples::classic::domain::PrisonerId::{Andrzej, Janusz};
+use amfi_examples::classic::env::PrisonerEnvState;
 
 
 pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Result<(), fern::InitError> {
@@ -43,16 +43,18 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
 
 
 
-fn main() -> Result<(), AmfiError<PrisonerDomain>>{
+fn main() -> Result<(), AmfiError<ClassicGameDomain>>{
     println!("Hello prisoners;");
     setup_logger(LevelFilter::Debug, &None).unwrap();
 
-    let reward_table = RewardTable{
-        cover_v_cover: 5,
-        betray_v_cover: 10,
-        betray_v_betray: 3,
-        cover_v_betray: 1
-    };
+    let reward_table = SymmetricRewardTableInt::new(5, 1, 10, 3);
+    /*{
+        /*coop_when_coop: 5,
+        defect_when_coop: 10,
+        defect_when_defect: 3,
+        coop_when_defect: 1*/
+        //enum_map!()
+    };*/
 
 
     let env_state = PrisonerEnvState::new(reward_table,  10);
@@ -62,11 +64,11 @@ fn main() -> Result<(), AmfiError<PrisonerDomain>>{
 
     let mut prisoner0 = AgentGenT::new(
         Andrzej,
-        PrisonerInfoSet::new(reward_table), comm_prisoner_0, CoverPolicy{});
+        PrisonerInfoSet::new(reward_table.clone()), comm_prisoner_0, CoverPolicy{});
 
     let mut prisoner1 = AgentGenT::new(
         Janusz,
-        PrisonerInfoSet::new(reward_table), comm_prisoner_1, Forgive1Policy{});
+        PrisonerInfoSet::new(reward_table.clone()), comm_prisoner_1, Forgive1Policy{});
 
     let mut env_coms = HashMap::new();
     env_coms.insert(Andrzej, comm_env_0);
@@ -111,12 +113,12 @@ fn main() -> Result<(), AmfiError<PrisonerDomain>>{
 
      */
 
-    env.reinit(PrisonerEnvState::new(reward_table, 10));
+    env.reinit(PrisonerEnvState::new(reward_table.clone(), 10));
     let mut prisoner0 = prisoner0.transform_replace_policy(RandomPrisonerPolicy{});
     //let mut prisoner1 = prisoner1.do_change_policy(BetrayRatioPolicy{});
     let mut prisoner1 = prisoner1.transform_replace_policy(SwitchOnTwoSubsequent{});
-    prisoner0.reinit(PrisonerInfoSet::new(reward_table));
-    prisoner1.reinit(PrisonerInfoSet::new(reward_table));
+    prisoner0.reinit(PrisonerInfoSet::new(reward_table.clone()));
+    prisoner1.reinit(PrisonerInfoSet::new(reward_table.clone()));
 
     thread::scope(|s|{
         s.spawn(||{
@@ -130,8 +132,8 @@ fn main() -> Result<(), AmfiError<PrisonerDomain>>{
         });
     });
 
-    let prisoner0_betrayals = prisoner0.info_set().count_actions(Betray);
-    let prisoner1_betrayals = prisoner1.info_set().count_actions(Betray);
+    let prisoner0_betrayals = prisoner0.info_set().count_actions(Defect);
+    let prisoner1_betrayals = prisoner1.info_set().count_actions(Defect);
 
     println!("Prisoner 0 betrayed {:?} times and Prisoner 1 betrayed {:?} times.", prisoner0_betrayals, prisoner1_betrayals);
 

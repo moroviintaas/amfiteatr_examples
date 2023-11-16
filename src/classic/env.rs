@@ -1,24 +1,24 @@
 use std::fmt::{Display, Formatter};
 use amfi::env::{EnvStateSequential, EnvironmentStateUniScore};
 use amfi::domain::DomainParameters;
-use crate::prisoner::common::RewardTable;
-use crate::prisoner::domain::{PRISONERS, PrisonerAction, PrisonerDomain, PrisonerError, PrisonerId, PrisonerUpdate, PrisonerMap};
-use crate::prisoner::domain::PrisonerError::{ActionAfterGameOver, ActionOutOfOrder};
-use crate::prisoner::domain::PrisonerId::{Andrzej, Janusz};
+use crate::classic::common::SymmetricRewardTableInt;
+use crate::classic::domain::{PRISONERS, ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerId, PrisonerUpdate, PrisonerMap};
+use crate::classic::domain::ClassicGameError::{ActionAfterGameOver, ActionOutOfOrder};
+use crate::classic::domain::PrisonerId::{Andrzej, Janusz};
 
 
 #[derive(Clone, Debug)]
 pub struct PrisonerEnvState{
-    previous_actions: Vec<PrisonerMap<PrisonerAction>>,
+    previous_actions: Vec<PrisonerMap<ClassicAction>>,
     //last_actions: HashMap<PrisonerId, Option<PrisonerAction>>,
-    last_round_actions: PrisonerMap<Option<PrisonerAction>>,
-    reward_table: RewardTable,
+    last_round_actions: PrisonerMap<Option<ClassicAction>>,
+    reward_table: SymmetricRewardTableInt,
     target_rounds: usize,
 
 }
 
 impl PrisonerEnvState{
-    pub fn new(reward_table: RewardTable, number_of_rounds: usize) -> Self{
+    pub fn new(reward_table: SymmetricRewardTableInt, number_of_rounds: usize) -> Self{
         Self{
             previous_actions: Vec::with_capacity(number_of_rounds),
             last_round_actions: PrisonerMap::default(),
@@ -60,7 +60,7 @@ impl Display for PrisonerEnvState{
     }
 }
 
-impl EnvStateSequential<PrisonerDomain> for PrisonerEnvState{
+impl EnvStateSequential<ClassicGameDomain> for PrisonerEnvState{
     type Updates = Vec<(PrisonerId, PrisonerUpdate)>;
 
     fn current_player(&self) -> Option<PrisonerId> {
@@ -85,7 +85,7 @@ impl EnvStateSequential<PrisonerDomain> for PrisonerEnvState{
         self.previous_actions.len() >= self.target_rounds
     }
 
-    fn forward(&mut self, agent: PrisonerId, action: PrisonerAction) -> Result<Self::Updates, PrisonerError> {
+    fn forward(&mut self, agent: PrisonerId, action: ClassicAction) -> Result<Self::Updates, ClassicGameError> {
         if self.is_finished(){
             return Err(ActionAfterGameOver(agent));
         }
@@ -128,8 +128,8 @@ impl EnvStateSequential<PrisonerDomain> for PrisonerEnvState{
     }
 }
 
-impl EnvironmentStateUniScore<PrisonerDomain> for PrisonerEnvState{
-    fn state_score_of_player(&self, agent: &PrisonerId) -> <PrisonerDomain as DomainParameters>::UniversalReward {
+impl EnvironmentStateUniScore<ClassicGameDomain> for PrisonerEnvState{
+    fn state_score_of_player(&self, agent: &PrisonerId) -> <ClassicGameDomain as DomainParameters>::UniversalReward {
         let other = agent.other();
         self.previous_actions.iter().fold(0, |acc,x|{
             acc  + self.reward_table.reward(x[*agent], x[other])

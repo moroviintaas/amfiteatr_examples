@@ -3,7 +3,7 @@ use std::sync::Arc;
 use rand::seq::IteratorRandom;
 use tch::Tensor;
 use amfi::agent::{AgentIdentifier, InformationSet, Policy, PresentPossibleActions, ScoringInformationSet};
-use amfi::domain::Reward;
+use amfi::domain::{DomainParameters, Reward};
 use amfi::error::ConvertError;
 use amfi_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
 use crate::classic::common::SymmetricRewardTableInt;
@@ -154,6 +154,9 @@ impl Policy<ClassicGameDomainNamed> for SwitchOnTwoSubsequent{
 }
 
 impl InformationSet<ClassicGameDomainNamed> for PrisonerInfoSet {
+    fn agent_id(&self) -> &<ClassicGameDomainNamed as DomainParameters>::AgentId {
+        &self.id
+    }
 
     fn is_action_valid(&self, _action: &ClassicAction) -> bool {
         true

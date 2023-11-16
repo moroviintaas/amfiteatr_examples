@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::thread;
 use log::LevelFilter;
-use amfi::agent::{AgentGenT, AutomaticAgentRewarded, ReinitAgent, StatefulAgent, TracingAgent};
+use amfi::agent::{AgentGenT, AgentWithId, AutomaticAgentRewarded, ReinitAgent, StatefulAgent, TracingAgent};
 use amfi::comm::SyncCommEnv;
 use amfi::env::generic::HashMapEnvT;
 use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment, TracingEnv};
@@ -64,12 +64,10 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
 
     let mut prisoner0 = AgentGenT::new(
-        Andrzej,
-        PrisonerInfoSet::new(reward_table.clone()), comm_prisoner_0, ClassicPureStrategy::new(ClassicAction::Cooperate));
+        PrisonerInfoSet::new(Andrzej, reward_table.clone()), comm_prisoner_0, ClassicPureStrategy::new(ClassicAction::Cooperate));
 
     let mut prisoner1 = AgentGenT::new(
-        Janusz,
-        PrisonerInfoSet::new(reward_table.clone()), comm_prisoner_1, Forgive1Policy{});
+        PrisonerInfoSet::new(Janusz, reward_table.clone()), comm_prisoner_1, Forgive1Policy{});
 
     let mut env_coms = HashMap::new();
     env_coms.insert(Andrzej, comm_env_0);
@@ -118,8 +116,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let mut prisoner0 = prisoner0.transform_replace_policy(RandomPrisonerPolicy{});
     //let mut prisoner1 = prisoner1.do_change_policy(BetrayRatioPolicy{});
     let mut prisoner1 = prisoner1.transform_replace_policy(SwitchOnTwoSubsequent{});
-    prisoner0.reinit(PrisonerInfoSet::new(reward_table.clone()));
-    prisoner1.reinit(PrisonerInfoSet::new(reward_table.clone()));
+    prisoner0.reinit(PrisonerInfoSet::new(*prisoner0.id(), reward_table.clone()));
+    prisoner1.reinit(PrisonerInfoSet::new(*prisoner1.id(), reward_table.clone()));
 
     thread::scope(|s|{
         s.spawn(||{

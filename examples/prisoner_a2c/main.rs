@@ -212,7 +212,6 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     //let initial_prisoner_state = PrisonerInfoSet::new(reward_table);
 
     let prisoner0 = AgentGenT::new(
-        Andrzej,
         PrisonerInfoSet::new(Andrzej, reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
 
 
@@ -237,7 +236,6 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerInfoSetWay {}, TrainConfig { gamma: 0.99 });
 
     let mut prisoner1 = AgentGenT::new(
-        Janusz,
         PrisonerInfoSet::new(Janusz, reward_table.clone()), comm_prisoner_1, n_policy);
 
     if let Some(var_store_file) = args.load_file{

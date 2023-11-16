@@ -1,6 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
+use std::sync::Arc;
 use amfi::agent::{AgentIdentifier};
 use amfi::error::{AmfiError};
 use amfi::domain::{Action, DomainParameters};
@@ -78,13 +79,16 @@ pub struct ClassicGameDomain<ID: AgentIdentifier>{
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct EncounterUpdate {
+pub struct EncounterReport {
+
     pub own_action: ClassicAction,
     pub other_player_action: ClassicAction,
     pub side: Side,
+    pub other_id: PrisonerId,
+
 }
 
-impl Display for EncounterUpdate {
+impl Display for EncounterReport {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Update [own action: {}, opponent's action: {}]", self.own_action, self.other_player_action)
     }
@@ -93,7 +97,7 @@ impl Display for EncounterUpdate {
 //impl StateUpdate for PrisonerUpdate{}
 
 //pub type PrisonerId = u8;
-#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Enum)]
 pub enum PrisonerId{
     Andrzej,
     Janusz
@@ -166,7 +170,7 @@ pub type IntReward = i32;
 impl<ID: AgentIdentifier> DomainParameters for ClassicGameDomain<ID> {
     type ActionType = ClassicAction;
     type GameErrorType = ClassicGameError<ID>;
-    type UpdateType = EncounterUpdate;
+    type UpdateType = Arc<Vec<EncounterReport>>;
     type AgentId = ID;
     type UniversalReward = IntReward;
 }

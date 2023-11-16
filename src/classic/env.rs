@@ -1,9 +1,11 @@
 use std::fmt::{Display, Formatter};
+use std::sync::Arc;
+use enum_map::Enum;
 use amfi::agent::AgentIdentifier;
 use amfi::env::{EnvStateSequential, EnvironmentStateUniScore};
 use amfi::domain::DomainParameters;
 use crate::classic::common::{Side, SymmetricRewardTableInt};
-use crate::classic::domain::{PRISONERS, ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerId, EncounterUpdate, PrisonerMap, ClassicGameDomainNamed};
+use crate::classic::domain::{PRISONERS, ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerId, EncounterReport, PrisonerMap, ClassicGameDomainNamed};
 use crate::classic::domain::ClassicGameError::{ActionAfterGameOver, ActionOutOfOrder};
 use crate::classic::domain::PrisonerId::{Andrzej, Janusz};
 
@@ -62,7 +64,7 @@ impl Display for PrisonerEnvState{
 }
 
 impl EnvStateSequential<ClassicGameDomainNamed> for PrisonerEnvState{
-    type Updates = Vec<(PrisonerId, EncounterUpdate)>;
+    type Updates = Vec<(PrisonerId, Arc<Vec<EncounterReport>>)>;
 
     fn current_player(&self) -> Option<PrisonerId> {
         if self.previous_actions.len() >= self.target_rounds{
@@ -106,25 +108,51 @@ impl EnvStateSequential<ClassicGameDomainNamed> for PrisonerEnvState{
             }
         }
 
+        //let a0 = self.last_round_actions[Andrzej].unwrap();
+        //let a1 = self.last_round_actions[Janusz].unwrap();
         let a0 = self.last_round_actions[Andrzej].unwrap();
         let a1 = self.last_round_actions[Janusz].unwrap();
         let action_entry = PrisonerMap::new(a0, a1);
         self.previous_actions.push(action_entry);
         self.last_round_actions[Andrzej] = None;
         self.last_round_actions[Janusz] = None;
-
+        /*
         let updates = vec![
-            (Andrzej, EncounterUpdate {
+            (Andrzej, EncounterReport {
                 own_action: a0,
                 other_player_action: a1,
                 side: Side::Left,
+                other_id: PrisonerId::Janusz,
             }),
-            (Janusz, EncounterUpdate {
+            (Janusz, EncounterReport {
                 own_action: a1,
                 other_player_action: a0,
-                side: Side::Right
+                side: Side::Right,
+                other_id: PrisonerId::Andrzej
             })
         ];
+
+         */
+
+        let reports = Arc::new(vec![
+            EncounterReport{
+                own_action: action_entry[PrisonerId::from_usize(0)],
+                other_player_action: action_entry[PrisonerId::from_usize(1)],
+                side: Side::Left,
+                other_id: PrisonerId::from_usize(1),
+            },
+            EncounterReport{
+                own_action: action_entry[PrisonerId::from_usize(1)],
+                other_player_action: action_entry[PrisonerId::from_usize(0)],
+                side: Side::Right,
+                other_id: PrisonerId::from_usize(0),
+            },
+        ]);
+        let updates = vec![
+            (PrisonerId::from_usize(0), reports.clone()),
+            (PrisonerId::from_usize(1), reports),
+        ];
+
 
         Ok(updates)
 

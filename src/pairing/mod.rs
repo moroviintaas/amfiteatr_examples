@@ -4,8 +4,9 @@ use rand::prelude::SliceRandom;
 use rand::thread_rng;
 use amfi::domain::DomainParameters;
 use amfi::env::{EnvironmentStateUniScore, EnvStateSequential};
-use crate::classic::common::{AsymmetricRewardTable, AsymmetricRewardTableInt};
-use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbers, ClassicGameError, EncounterUpdate, IntReward};
+use crate::classic::common::{AsymmetricRewardTable, AsymmetricRewardTableInt, Side};
+use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbers, ClassicGameError, EncounterReport, IntReward};
+use crate::classic::domain::ClassicGameError::ActionAfterGameOver;
 
 pub type AgentNum = u32;
 #[derive(Debug, Clone)]
@@ -26,8 +27,9 @@ impl DomainParameters for PairDomain{
 
 #[derive(Copy, Clone, Debug, Default)]
 pub struct PlayerPairing {
-    pub pair: Option<AgentNum>,
-    pub taken_action: Option<ClassicAction>
+    pub paired_player: AgentNum,
+    pub taken_action: Option<ClassicAction>,
+    pub side: Side
 }
 
 pub type PairingVec = Vec<PlayerPairing>;
@@ -35,7 +37,6 @@ pub type PairingVec = Vec<PlayerPairing>;
 #[derive(Debug, Clone)]
 pub struct PairingState{
     actual_pairings: PairingVec,
-    actual_resolved: usize,
     previous_pairings: Vec<Arc<PairingVec>>,
     target_rounds: usize,
     indexes: Vec<u32>,
@@ -67,7 +68,6 @@ impl PairingState{
             actual_pairings,
             indexes,
             target_rounds,
-            actual_resolved: 0,
             previous_pairings: Vec::with_capacity(target_rounds),
             reward_table,
             score_cache,
@@ -85,14 +85,16 @@ impl PairingState{
                 if i & 0x01 == 0{
                     //even
                     v[i] = PlayerPairing{
-                        pair: Some(indexes[i+1]),
+                        paired_player: indexes[i+1],
                         taken_action: None,
+                        side: Side::Left,
                     }
 
                 } else {
                     v[i] = PlayerPairing{
-                        pair: Some(indexes[i-1]),
-                        taken_action: None
+                        paired_player: indexes[i-1],
+                        taken_action: None,
+                        side: Side::Right,
                     }
                 }
             }
@@ -113,13 +115,13 @@ impl PairingState{
     }
 
     pub fn is_round_clean(&self) -> bool{
-        self.actual_resolved == 0
+        self.current_player_index == 0
     }
 
 }
 
 impl EnvStateSequential<ClassicGameDomainNumbers> for PairingState {
-    type Updates = Vec<(AgentNum, EncounterUpdate)>;
+    type Updates = Vec<(AgentNum, Arc<Vec<EncounterReport>>)>;
 
     fn current_player(&self) -> Option<AgentNum> {
         if self.current_player_index  < self.actual_pairings.len(){
@@ -135,7 +137,48 @@ impl EnvStateSequential<ClassicGameDomainNumbers> for PairingState {
 
     fn forward(&mut self, agent: AgentNum, action: ClassicAction)
         -> Result<Self::Updates, ClassicGameError<AgentNum>> {
-        todo!()
+        if let Some(destined_agent) = self.current_player(){
+            if destined_agent == agent{
+                self.actual_pairings[agent as usize].taken_action = Some(action);
+                let this_pairing = self.actual_pairings[agent as usize];
+                let other_player_index = this_pairing.paired_player;
+                let other_pairing = self.actual_pairings[other_player_index as usize];
+                // possibly update score cache if other player played already
+                if let Some(other_action) = other_pairing.taken_action {
+                    let (left_action, right_action) = match this_pairing.side{
+                        Side::Left => (action, other_action),
+                        Side::Right => (other_action, action)
+                    };
+                    let rewards = self.reward_table.rewards(left_action, right_action);
+                    let rewards_reoriented = match this_pairing.side{
+                        Side::Left => rewards,
+                        Side::Right => (rewards.1, rewards.0)
+                    };
+                    self.score_cache[agent as usize] += rewards_reoriented.0;
+                    self.score_cache[other_player_index as usize] += rewards_reoriented.1;
+
+                }
+                //set next index
+                self.current_player_index +=1;
+
+                if self.current_player_index >= self.actual_pairings.len(){
+                    self.current_player_index = 0;
+                    self.prepare_new_pairing()?;
+                    todo!()
+                    //let updates: Vec<(AgentNum, EncounterUpdate> =
+                }
+
+
+
+                todo!()
+
+            } else{
+                Err(ClassicGameError::ViolatedOrder(agent))
+            }
+
+        } else {
+            Err(ActionAfterGameOver(agent))
+        }
 
     }
 }

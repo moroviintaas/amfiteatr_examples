@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::sync::Arc;
 use rand::seq::IteratorRandom;
 use tch::Tensor;
 use amfi::agent::{AgentIdentifier, InformationSet, Policy, PresentPossibleActions, ScoringInformationSet};
@@ -6,20 +7,23 @@ use amfi::domain::Reward;
 use amfi::error::ConvertError;
 use amfi_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
 use crate::classic::common::SymmetricRewardTableInt;
-use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed, ClassicGameError, PrisonerId, EncounterUpdate};
+use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed, ClassicGameError, PrisonerId, EncounterReport};
 use crate::classic::domain::ClassicAction::{Defect, Cooperate};
+use enum_map::Enum;
 
 #[derive(Clone, Debug)]
 pub struct PrisonerInfoSet {
-    previous_actions: Vec<EncounterUpdate>,
+    id: PrisonerId,
+    previous_actions: Vec<EncounterReport>,
     reward_table: SymmetricRewardTableInt,
     //last_action: Cell<Option<PrisonerAction>>
 
 }
 
 impl PrisonerInfoSet {
-    pub fn new(reward_table: SymmetricRewardTableInt) -> Self{
+    pub fn new(player_id: PrisonerId, reward_table: SymmetricRewardTableInt) -> Self{
         Self{
+            id: player_id,
             reward_table,
             //last_action: Cell::new(None),
             previous_actions: Vec::new()}
@@ -31,7 +35,7 @@ impl PrisonerInfoSet {
 
      */
 
-    pub fn previous_actions(&self) -> &Vec<EncounterUpdate>{
+    pub fn previous_actions(&self) -> &Vec<EncounterReport>{
         &self.previous_actions
     }
 
@@ -155,9 +159,10 @@ impl InformationSet<ClassicGameDomainNamed> for PrisonerInfoSet {
         true
     }
 
-    fn update(&mut self, update: EncounterUpdate) -> Result<(), ClassicGameError<PrisonerId>> {
+    fn update(&mut self, update: Arc<Vec<EncounterReport>>) -> Result<(), ClassicGameError<PrisonerId>> {
 
-        self.previous_actions.push(update);
+        let encounter = update[self.id.into_usize()];
+        self.previous_actions.push(encounter);
         Ok(())
     }
 
@@ -177,7 +182,7 @@ impl ScoringInformationSet<ClassicGameDomainNamed> for PrisonerInfoSet {
     fn current_subjective_score(&self) -> Self::RewardType {
         if !self.previous_actions.is_empty(){
             let sum = self.previous_actions.iter().fold(0.0, |acc, x|{
-                acc + *self.reward_table.reward(x.own_action, x.other_player_action) as f64
+                acc + self.reward_table.reward(x.own_action, x.other_player_action) as f64
             });
             sum/(self.previous_actions.len() as f64)
 

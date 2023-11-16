@@ -9,6 +9,12 @@ pub enum Side{
     Right
 }
 
+impl Default for Side{
+    fn default() -> Self {
+        Self::Left
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Copy)]
 pub struct SymmetricRewardTable<R: Reward + Copy> {
 
@@ -40,7 +46,7 @@ impl<R: Reward + Copy> SymmetricRewardTable<R> {
         }
     }
 
-    pub fn reward(&self, action: ClassicAction, other_action: ClassicAction) -> &R {
+    pub fn reward(&self, action: ClassicAction, other_action: ClassicAction) -> R {
         /*
         match (action, other_action){
             (ClassicAction::Cooperate, ClassicAction::Cooperate) => &self.coop_when_coop,
@@ -50,7 +56,7 @@ impl<R: Reward + Copy> SymmetricRewardTable<R> {
         }
 
          */
-        &self.la[action][other_action]
+        self.la[action][other_action]
     }
 
 }
@@ -75,17 +81,19 @@ impl<R: Reward + Copy> AsymmetricRewardTable<R> {
         }
     }
 
-    pub fn reward_for_side(&self, reward_for: Side, left_action: ClassicAction, right_action: ClassicAction) -> &R {
+    pub fn reward_for_side(&self, reward_for: Side, left_action: ClassicAction, right_action: ClassicAction) -> R {
 
-        &self.table[reward_for].reward(left_action, right_action)
+        self.table[reward_for].reward(left_action, right_action)
     }
 
-    pub fn rewards(&self, left_action: ClassicAction, right_action: ClassicAction) -> (&R, &R){
+    pub fn rewards(&self, left_action: ClassicAction, right_action: ClassicAction) -> (R, R){
         (
-            &self.table[Side::Left].reward(left_action, right_action),
-            &self.table[Side::Right].reward(left_action, right_action)
+            self.table[Side::Left].reward(left_action, right_action),
+            self.table[Side::Right].reward(left_action, right_action)
         )
     }
+
+
 
 }
 

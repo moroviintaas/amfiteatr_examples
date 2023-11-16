@@ -209,11 +209,11 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let (comm_env_0, comm_prisoner_0) = SyncCommEnv::new_pair();
     let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
 
-    let initial_prisoner_state = PrisonerInfoSet::new(reward_table);
+    //let initial_prisoner_state = PrisonerInfoSet::new(reward_table);
 
     let prisoner0 = AgentGenT::new(
         Andrzej,
-        PrisonerInfoSet::new(reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
+        PrisonerInfoSet::new(Andrzej, reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
 
 
 
@@ -238,7 +238,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
 
     let mut prisoner1 = AgentGenT::new(
         Janusz,
-        PrisonerInfoSet::new(reward_table.clone()), comm_prisoner_1, n_policy);
+        PrisonerInfoSet::new(Janusz, reward_table.clone()), comm_prisoner_1, n_policy);
 
     if let Some(var_store_file) = args.load_file{
         prisoner1.policy_mut().network_mut().var_store_mut().load(var_store_file)
@@ -251,8 +251,11 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
 
 
     let mut model = PrisonerModel{
-        env, agent1: prisoner1, agent0: prisoner0, agent1_default_state: initial_prisoner_state.clone(),
-        agent0_default_state: initial_prisoner_state.clone(), env_default_state: initial_env_state.clone()
+        env, agent1: prisoner1,
+        agent0: prisoner0,
+        agent1_default_state: PrisonerInfoSet::new(Andrzej, reward_table),
+        agent0_default_state: PrisonerInfoSet::new(Janusz, reward_table),
+        env_default_state: initial_env_state.clone()
     };
 
     let scores = model.evaluate(1000)?;

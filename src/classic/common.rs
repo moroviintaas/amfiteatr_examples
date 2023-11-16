@@ -62,7 +62,7 @@ pub struct AsymmetricRewardTable<R: Reward + Copy>{
     table: EnumMap<Side, SymmetricRewardTable<R>>
 }
 
-type AsymmetricRewardTableInt = AsymmetricRewardTable<IntReward>;
+pub type AsymmetricRewardTableInt = AsymmetricRewardTable<IntReward>;
 
 impl<R: Reward + Copy> AsymmetricRewardTable<R> {
 

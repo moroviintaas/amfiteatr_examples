@@ -1,4 +1,5 @@
 use std::fmt::{Display, Formatter};
+use std::marker::PhantomData;
 use std::ops::{Index, IndexMut};
 use amfi::agent::{AgentIdentifier};
 use amfi::error::{AmfiError};
@@ -6,6 +7,8 @@ use amfi::domain::{Action, DomainParameters};
 use crate::classic::domain::PrisonerId::{Andrzej, Janusz};
 use enum_map::Enum;
 use serde::{Deserialize, Serialize};
+use crate::classic::common::Side;
+use crate::pairing::AgentNum;
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Enum, Serialize, Deserialize)]
 pub enum ClassicAction {
@@ -34,20 +37,24 @@ impl Action for ClassicAction {}
 
 
 #[derive(thiserror::Error, Debug, PartialEq, Clone)]
-pub enum ClassicGameError {
+pub enum ClassicGameError<ID: AgentIdentifier> {
     #[error("Performed different action (chosen: {chosen:?}, logged: {logged:?})")]
     DifferentActionPerformed{
         chosen: ClassicAction,
         logged: ClassicAction
     },
+    #[error("Order in game was violated. Current player given by current_player(): {0} was rejected in forward()")]
+    ViolatedOrder(ID),
     #[error("Environment logged action {0}, but none was performed")]
     NoLastAction(ClassicAction),
     #[error("Player: {0} played after GameOver")]
-    ActionAfterGameOver(PrisonerId),
+    ActionAfterGameOver(ID),
     #[error("Player: {0} played out of order")]
-    ActionOutOfOrder(PrisonerId),
+    ActionOutOfOrder(ID),
     #[error("Value can't be probability: {0}")]
     NotAProbability(f64),
+    #[error("Odd number of players: {0}")]
+    ExpectedEvenNumberOfPlayers(u32),
 }
 
 /*
@@ -58,24 +65,28 @@ impl Into<AmfiError<PrisonerDomain>> for PrisonerError {
 }
 
  */
-impl From<ClassicGameError> for AmfiError<ClassicGameDomain>{
-    fn from(value: ClassicGameError) -> Self {
+impl<ID: AgentIdentifier> From<ClassicGameError<ID>> for AmfiError<ClassicGameDomain<ID>>{
+    fn from(value: ClassicGameError<ID>) -> Self {
         AmfiError::Game(value)
     }
 }
 
 
 #[derive(Clone, Debug)]
-pub struct ClassicGameDomain;
-#[derive(Debug, Copy, Clone)]
-pub struct PrisonerUpdate{
-    pub own_action: ClassicAction,
-    pub other_prisoner_action: ClassicAction
+pub struct ClassicGameDomain<ID: AgentIdentifier>{
+    _id: PhantomData<ID>
 }
 
-impl Display for PrisonerUpdate {
+#[derive(Debug, Copy, Clone)]
+pub struct EncounterUpdate {
+    pub own_action: ClassicAction,
+    pub other_player_action: ClassicAction,
+    pub side: Side,
+}
+
+impl Display for EncounterUpdate {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Update [own action: {}, opponent's action: {}]", self.own_action, self.other_prisoner_action)
+        write!(f, "Update [own action: {}, opponent's action: {}]", self.own_action, self.other_player_action)
     }
 }
 
@@ -152,10 +163,12 @@ pub const PRISONERS:[PrisonerId;2] = [PrisonerId::Andrzej, PrisonerId::Janusz];
 pub type IntReward = i32;
 
 
-impl DomainParameters for ClassicGameDomain {
+impl<ID: AgentIdentifier> DomainParameters for ClassicGameDomain<ID> {
     type ActionType = ClassicAction;
-    type GameErrorType = ClassicGameError;
-    type UpdateType = PrisonerUpdate;
-    type AgentId = PrisonerId;
+    type GameErrorType = ClassicGameError<ID>;
+    type UpdateType = EncounterUpdate;
+    type AgentId = ID;
     type UniversalReward = IntReward;
 }
+pub type ClassicGameDomainNamed = ClassicGameDomain<PrisonerId>;
+pub type ClassicGameDomainNumbers = ClassicGameDomain<AgentNum>;

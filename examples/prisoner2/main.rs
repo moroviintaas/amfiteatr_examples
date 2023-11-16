@@ -7,12 +7,13 @@ use amfi::comm::SyncCommEnv;
 use amfi::env::generic::HashMapEnvT;
 use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment, TracingEnv};
 use amfi::error::AmfiError;
-use amfi_examples::classic::agent::{CoverPolicy, Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
+use amfi_examples::classic::agent::{Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
 use amfi_examples::classic::common::SymmetricRewardTableInt;
 use amfi_examples::classic::domain::ClassicAction::Defect;
-use amfi_examples::classic::domain::ClassicGameDomain;
+use amfi_examples::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed};
 use amfi_examples::classic::domain::PrisonerId::{Andrzej, Janusz};
 use amfi_examples::classic::env::PrisonerEnvState;
+use amfi_examples::classic::policy::ClassicPureStrategy;
 
 
 pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Result<(), fern::InitError> {
@@ -43,7 +44,7 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
 
 
 
-fn main() -> Result<(), AmfiError<ClassicGameDomain>>{
+fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     println!("Hello prisoners;");
     setup_logger(LevelFilter::Debug, &None).unwrap();
 
@@ -64,7 +65,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain>>{
 
     let mut prisoner0 = AgentGenT::new(
         Andrzej,
-        PrisonerInfoSet::new(reward_table.clone()), comm_prisoner_0, CoverPolicy{});
+        PrisonerInfoSet::new(reward_table.clone()), comm_prisoner_0, ClassicPureStrategy::new(ClassicAction::Cooperate));
 
     let mut prisoner1 = AgentGenT::new(
         Janusz,

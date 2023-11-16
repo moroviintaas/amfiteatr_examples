@@ -1,8 +1,9 @@
 use std::fmt::{Display, Formatter};
+use amfi::agent::AgentIdentifier;
 use amfi::env::{EnvStateSequential, EnvironmentStateUniScore};
 use amfi::domain::DomainParameters;
-use crate::classic::common::SymmetricRewardTableInt;
-use crate::classic::domain::{PRISONERS, ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerId, PrisonerUpdate, PrisonerMap};
+use crate::classic::common::{Side, SymmetricRewardTableInt};
+use crate::classic::domain::{PRISONERS, ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerId, EncounterUpdate, PrisonerMap, ClassicGameDomainNamed};
 use crate::classic::domain::ClassicGameError::{ActionAfterGameOver, ActionOutOfOrder};
 use crate::classic::domain::PrisonerId::{Andrzej, Janusz};
 
@@ -60,8 +61,8 @@ impl Display for PrisonerEnvState{
     }
 }
 
-impl EnvStateSequential<ClassicGameDomain> for PrisonerEnvState{
-    type Updates = Vec<(PrisonerId, PrisonerUpdate)>;
+impl EnvStateSequential<ClassicGameDomainNamed> for PrisonerEnvState{
+    type Updates = Vec<(PrisonerId, EncounterUpdate)>;
 
     fn current_player(&self) -> Option<PrisonerId> {
         if self.previous_actions.len() >= self.target_rounds{
@@ -85,7 +86,7 @@ impl EnvStateSequential<ClassicGameDomain> for PrisonerEnvState{
         self.previous_actions.len() >= self.target_rounds
     }
 
-    fn forward(&mut self, agent: PrisonerId, action: ClassicAction) -> Result<Self::Updates, ClassicGameError> {
+    fn forward(&mut self, agent: PrisonerId, action: ClassicAction) -> Result<Self::Updates, ClassicGameError<PrisonerId>> {
         if self.is_finished(){
             return Err(ActionAfterGameOver(agent));
         }
@@ -113,13 +114,15 @@ impl EnvStateSequential<ClassicGameDomain> for PrisonerEnvState{
         self.last_round_actions[Janusz] = None;
 
         let updates = vec![
-            (Andrzej, PrisonerUpdate{
+            (Andrzej, EncounterUpdate {
                 own_action: a0,
-                other_prisoner_action: a1
+                other_player_action: a1,
+                side: Side::Left,
             }),
-            (Janusz, PrisonerUpdate{
+            (Janusz, EncounterUpdate {
                 own_action: a1,
-                other_prisoner_action: a0
+                other_player_action: a0,
+                side: Side::Right
             })
         ];
 
@@ -128,8 +131,8 @@ impl EnvStateSequential<ClassicGameDomain> for PrisonerEnvState{
     }
 }
 
-impl EnvironmentStateUniScore<ClassicGameDomain> for PrisonerEnvState{
-    fn state_score_of_player(&self, agent: &PrisonerId) -> <ClassicGameDomain as DomainParameters>::UniversalReward {
+impl EnvironmentStateUniScore<ClassicGameDomainNamed> for PrisonerEnvState{
+    fn state_score_of_player(&self, agent: &PrisonerId) -> <ClassicGameDomainNamed as DomainParameters>::UniversalReward {
         let other = agent.other();
         self.previous_actions.iter().fold(0, |acc,x|{
             acc  + self.reward_table.reward(x[*agent], x[other])

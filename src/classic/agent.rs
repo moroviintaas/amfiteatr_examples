@@ -1,17 +1,17 @@
 use std::fmt::{Display, Formatter};
 use rand::seq::IteratorRandom;
 use tch::Tensor;
-use amfi::agent::{InformationSet, Policy, PresentPossibleActions, ScoringInformationSet};
+use amfi::agent::{AgentIdentifier, InformationSet, Policy, PresentPossibleActions, ScoringInformationSet};
 use amfi::domain::Reward;
 use amfi::error::ConvertError;
 use amfi_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
 use crate::classic::common::SymmetricRewardTableInt;
-use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerUpdate};
+use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed, ClassicGameError, PrisonerId, EncounterUpdate};
 use crate::classic::domain::ClassicAction::{Defect, Cooperate};
 
 #[derive(Clone, Debug)]
 pub struct PrisonerInfoSet {
-    previous_actions: Vec<PrisonerUpdate>,
+    previous_actions: Vec<EncounterUpdate>,
     reward_table: SymmetricRewardTableInt,
     //last_action: Cell<Option<PrisonerAction>>
 
@@ -31,7 +31,7 @@ impl PrisonerInfoSet {
 
      */
 
-    pub fn previous_actions(&self) -> &Vec<PrisonerUpdate>{
+    pub fn previous_actions(&self) -> &Vec<EncounterUpdate>{
         &self.previous_actions
     }
 
@@ -45,7 +45,7 @@ impl Display for PrisonerInfoSet {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Rounds: {} |", self.previous_actions.len())?;
         let mut s = self.previous_actions.iter().fold( String::new(),|mut acc, update|{
-            acc.push_str(&format!("{:#}-{:#} ", update.own_action, update.other_prisoner_action));
+            acc.push_str(&format!("{:#}-{:#} ", update.own_action, update.other_player_action));
             acc
         });
         s.pop();
@@ -53,7 +53,7 @@ impl Display for PrisonerInfoSet {
     }
 }
 
-
+/*
 pub struct CoverPolicy{}
 
 impl Policy<ClassicGameDomain> for CoverPolicy{
@@ -63,16 +63,16 @@ impl Policy<ClassicGameDomain> for CoverPolicy{
         //state._select_action(Cover);
         Some(Cooperate)
     }
-}
+}*/
 
 pub struct Forgive1Policy{}
 
-impl Policy<ClassicGameDomain> for Forgive1Policy{
+impl Policy<ClassicGameDomainNamed> for Forgive1Policy{
     type InfoSetType = PrisonerInfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<ClassicAction> {
         let enemy_betrayals = state.previous_actions().iter().filter(| &step|{
-            step.other_prisoner_action == Defect
+            step.other_player_action == Defect
         }).count();
         if enemy_betrayals > 1 {
             //state._select_action(Betray);
@@ -87,15 +87,15 @@ impl Policy<ClassicGameDomain> for Forgive1Policy{
 
 pub struct BetrayRatioPolicy{}
 
-impl Policy<ClassicGameDomain> for BetrayRatioPolicy{
+impl Policy<ClassicGameDomainNamed> for BetrayRatioPolicy{
     type InfoSetType = PrisonerInfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<ClassicAction> {
         let betrayed = state.previous_actions().iter()
-            .filter(|round| round.other_prisoner_action == Defect)
+            .filter(|round| round.other_player_action == Defect)
             .count();
         let covered = state.previous_actions().iter()
-            .filter(|round| round.other_prisoner_action == Cooperate)
+            .filter(|round| round.other_player_action == Cooperate)
             .count();
 
         if betrayed > covered{
@@ -112,7 +112,7 @@ impl Policy<ClassicGameDomain> for BetrayRatioPolicy{
 pub struct RandomPrisonerPolicy{}
 
 
-impl Policy<ClassicGameDomain> for RandomPrisonerPolicy{
+impl Policy<ClassicGameDomainNamed> for RandomPrisonerPolicy{
     type InfoSetType = PrisonerInfoSet;
 
 
@@ -127,18 +127,18 @@ impl Policy<ClassicGameDomain> for RandomPrisonerPolicy{
 
 pub struct SwitchOnTwoSubsequent{}
 
-impl Policy<ClassicGameDomain> for SwitchOnTwoSubsequent{
+impl Policy<ClassicGameDomainNamed> for SwitchOnTwoSubsequent{
     type InfoSetType = PrisonerInfoSet;
 
     fn select_action(&self, state: &Self::InfoSetType) -> Option<ClassicAction> {
 
         if let Some(i_update) = state.previous_actions().last(){
-            let mut other_action = i_update.other_prisoner_action;
+            let mut other_action = i_update.other_player_action;
             for i in (0..state.previous_actions.len()-1).rev(){
-                if state.previous_actions()[i].other_prisoner_action == other_action{
+                if state.previous_actions()[i].other_player_action == other_action{
                     return Some(other_action)
                 } else {
-                    other_action = state.previous_actions()[i].other_prisoner_action;
+                    other_action = state.previous_actions()[i].other_player_action;
                 }
             }
             Some(Cooperate)
@@ -149,13 +149,13 @@ impl Policy<ClassicGameDomain> for SwitchOnTwoSubsequent{
     }
 }
 
-impl InformationSet<ClassicGameDomain> for PrisonerInfoSet {
+impl InformationSet<ClassicGameDomainNamed> for PrisonerInfoSet {
 
     fn is_action_valid(&self, _action: &ClassicAction) -> bool {
         true
     }
 
-    fn update(&mut self, update: PrisonerUpdate) -> Result<(), ClassicGameError> {
+    fn update(&mut self, update: EncounterUpdate) -> Result<(), ClassicGameError<PrisonerId>> {
 
         self.previous_actions.push(update);
         Ok(())
@@ -163,7 +163,7 @@ impl InformationSet<ClassicGameDomain> for PrisonerInfoSet {
 
 }
 
-impl PresentPossibleActions<ClassicGameDomain> for PrisonerInfoSet {
+impl PresentPossibleActions<ClassicGameDomainNamed> for PrisonerInfoSet {
     type ActionIteratorType = [ClassicAction;2];
 
     fn available_actions(&self) -> Self::ActionIteratorType {
@@ -171,13 +171,13 @@ impl PresentPossibleActions<ClassicGameDomain> for PrisonerInfoSet {
     }
 }
 
-impl ScoringInformationSet<ClassicGameDomain> for PrisonerInfoSet {
+impl ScoringInformationSet<ClassicGameDomainNamed> for PrisonerInfoSet {
     type RewardType = f64;
 
     fn current_subjective_score(&self) -> Self::RewardType {
         if !self.previous_actions.is_empty(){
             let sum = self.previous_actions.iter().fold(0.0, |acc, x|{
-                acc + *self.reward_table.reward(x.own_action, x.other_prisoner_action) as f64
+                acc + *self.reward_table.reward(x.own_action, x.other_player_action) as f64
             });
             sum/(self.previous_actions.len() as f64)
 
@@ -207,7 +207,7 @@ impl ConvStateToTensor<PrisonerInfoSet> for PrisonerStateTranslate{
                 Defect =>  1.0,
                 Cooperate => 2.0,
             };
-            array[2*i+1] = match t.previous_actions()[i].other_prisoner_action{
+            array[2*i+1] = match t.previous_actions()[i].other_player_action {
                 Defect =>  1.0,
                 Cooperate => 2.0,
             };
@@ -268,7 +268,7 @@ impl ConvertToTensor<PrisonerInfoSetWay> for PrisonerInfoSet {
                 Defect =>  1.0,
                 Cooperate => 2.0,
             };
-            array[2*i+1] = match self.previous_actions()[i].other_prisoner_action{
+            array[2*i+1] = match self.previous_actions()[i].other_player_action {
                 Defect =>  1.0,
                 Cooperate => 2.0,
             };

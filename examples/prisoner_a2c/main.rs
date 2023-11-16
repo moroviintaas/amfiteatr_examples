@@ -12,7 +12,7 @@ use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment};
 use amfi::error::AmfiError;
 use amfi_examples::classic::agent::{*};
 use amfi_examples::classic::common::SymmetricRewardTableInt;
-use amfi_examples::classic::domain::ClassicGameDomain;
+use amfi_examples::classic::domain::{ClassicGameDomain, ClassicGameDomainNamed};
 use amfi_examples::classic::domain::PrisonerId::{Andrzej, Janusz};
 use amfi_examples::classic::env::PrisonerEnvState;
 use amfi_rl::actor_critic::ActorCriticPolicy;
@@ -76,19 +76,19 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
 
 
 
-struct PrisonerModel<P0: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>>{
-    pub env: HashMapEnvT<ClassicGameDomain, PrisonerEnvState, SyncCommEnv<ClassicGameDomain>>,
-    pub agent0: AgentGenT<ClassicGameDomain, P0, SyncCommAgent<ClassicGameDomain>>,
-    pub agent1: AgentGenT<ClassicGameDomain, P1, SyncCommAgent<ClassicGameDomain>>,
+struct PrisonerModel<P0: Policy<ClassicGameDomainNamed, InfoSetType=PrisonerInfoSet>, P1: Policy<ClassicGameDomainNamed, InfoSetType=PrisonerInfoSet>>{
+    pub env: HashMapEnvT<ClassicGameDomainNamed, PrisonerEnvState, SyncCommEnv<ClassicGameDomainNamed>>,
+    pub agent0: AgentGenT<ClassicGameDomainNamed, P0, SyncCommAgent<ClassicGameDomainNamed>>,
+    pub agent1: AgentGenT<ClassicGameDomainNamed, P1, SyncCommAgent<ClassicGameDomainNamed>>,
     pub env_default_state: PrisonerEnvState,
-    pub agent0_default_state: <P0 as Policy<ClassicGameDomain>>::InfoSetType,
-    pub agent1_default_state: <P1 as Policy<ClassicGameDomain>>::InfoSetType,
+    pub agent0_default_state: <P0 as Policy<ClassicGameDomainNamed>>::InfoSetType,
+    pub agent1_default_state: <P1 as Policy<ClassicGameDomainNamed>>::InfoSetType,
 
 }
 
-impl <P0: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>> PrisonerModel<P0, P1>{
+impl <P0: Policy<ClassicGameDomainNamed, InfoSetType=PrisonerInfoSet>, P1: Policy<ClassicGameDomainNamed, InfoSetType=PrisonerInfoSet>> PrisonerModel<P0, P1>{
 
-    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), AmfiError<ClassicGameDomain>>{
+    pub fn evaluate(&mut self, number_of_tries: usize) -> Result<((f64, f64), (f64, f64)), AmfiError<ClassicGameDomainNamed>>{
         let mut sum_rewards_0_uni = 0.0;
         let mut sum_rewards_1_uni = 0.0;
         let mut sum_rewards_0_sub = 0.0;
@@ -131,19 +131,19 @@ impl <P0: Policy<ClassicGameDomain, InfoSetType=PrisonerInfoSet>, P1: Policy<Cla
 }
 
 impl<
-    P0: Policy<ClassicGameDomain,
+    P0: Policy<ClassicGameDomainNamed,
         InfoSetType=PrisonerInfoSet>
 > PrisonerModel<
     P0,
     ActorCriticPolicy<
-        ClassicGameDomain,
+        ClassicGameDomainNamed,
         PrisonerInfoSet,
         //PrisonerStateTranslate
         PrisonerInfoSetWay
     >
 >{
 
-    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize, reward_source: RewardSource) -> Result<(), AmfiError<ClassicGameDomain>>{
+    fn train_agent_1(&mut self, epochs: usize, games_in_epoch: usize, reward_source: RewardSource) -> Result<(), AmfiError<ClassicGameDomainNamed>>{
 
         let mut trajectory_archive = Vec::with_capacity(games_in_epoch);
         for epoch in 0..epochs{
@@ -185,7 +185,7 @@ impl<
 
 }
 
-fn main() -> Result<(), AmfiError<ClassicGameDomain>>{
+fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let device = Device::Cpu;
 
     let args = ExampleOptions::parse();

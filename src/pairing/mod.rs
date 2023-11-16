@@ -5,7 +5,7 @@ use rand::thread_rng;
 use amfi::domain::DomainParameters;
 use amfi::env::{EnvironmentStateUniScore, EnvStateSequential};
 use crate::classic::common::{AsymmetricRewardTable, AsymmetricRewardTableInt, Side};
-use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbers, ClassicGameError, EncounterReport, IntReward};
+use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbers, ClassicGameError, EncounterReport, EncounterReportNamed, EncounterReportNumbered, IntReward};
 use crate::classic::domain::ClassicGameError::ActionAfterGameOver;
 
 pub type AgentNum = u32;
@@ -121,7 +121,7 @@ impl PairingState{
 }
 
 impl EnvStateSequential<ClassicGameDomainNumbers> for PairingState {
-    type Updates = Vec<(AgentNum, Arc<Vec<EncounterReport>>)>;
+    type Updates = Vec<(AgentNum, Arc<Vec<EncounterReportNumbered>>)>;
 
     fn current_player(&self) -> Option<AgentNum> {
         if self.current_player_index  < self.actual_pairings.len(){
@@ -162,15 +162,39 @@ impl EnvStateSequential<ClassicGameDomainNumbers> for PairingState {
                 self.current_player_index +=1;
 
                 if self.current_player_index >= self.actual_pairings.len(){
-                    self.current_player_index = 0;
+
+
+                    let encounters_vec: Vec<EncounterReportNumbered> = (0..self.actual_pairings.len())
+                        .into_iter().map(|i|{
+                        let actual_pairing = self.actual_pairings[i];
+                        let other_player = self.actual_pairings[i].paired_player;
+                        let reverse_pairing = self.actual_pairings[other_player as usize];
+                        EncounterReport{
+                            own_action: self.actual_pairings[i].taken_action.unwrap(),
+                            other_player_action: self.actual_pairings[other_player as usize].taken_action.unwrap(),
+                            side: actual_pairing.side,
+                            other_id: other_player,
+                        }
+                    }).collect();
+                    let encounters = Arc::new(encounters_vec);
+
                     self.prepare_new_pairing()?;
-                    todo!()
-                    //let updates: Vec<(AgentNum, EncounterUpdate> =
+                    self.current_player_index = 0;
+
+                    let updates: Vec<(AgentNum, Arc<Vec<EncounterReportNumbered>>)> = (0..self.actual_pairings.len())
+                        .into_iter().map(|i|{
+                        (i as u32, encounters.clone())
+                    }).collect();
+
+                    Ok(updates)
+
+                } else{
+                    Ok(Vec::default())
                 }
 
 
 
-                todo!()
+
 
             } else{
                 Err(ClassicGameError::ViolatedOrder(agent))

@@ -253,8 +253,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let mut model = PrisonerModel{
         env, agent1: prisoner1,
         agent0: prisoner0,
-        agent1_default_state: PrisonerInfoSet::new(Andrzej, reward_table),
-        agent0_default_state: PrisonerInfoSet::new(Janusz, reward_table),
+        agent1_default_state: PrisonerInfoSet::new(Janusz, reward_table),
+        agent0_default_state: PrisonerInfoSet::new(Andrzej, reward_table),
         env_default_state: initial_env_state.clone()
     };
 

@@ -7,14 +7,14 @@ use amfi::domain::Reward;
 use amfi::error::ConvertError;
 use amfi_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
 use crate::classic::common::SymmetricRewardTableInt;
-use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed, ClassicGameError, PrisonerId, EncounterReport};
+use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed, ClassicGameError, PrisonerId, EncounterReport, EncounterReportNamed};
 use crate::classic::domain::ClassicAction::{Defect, Cooperate};
 use enum_map::Enum;
 
 #[derive(Clone, Debug)]
 pub struct PrisonerInfoSet {
     id: PrisonerId,
-    previous_actions: Vec<EncounterReport>,
+    previous_actions: Vec<EncounterReportNamed>,
     reward_table: SymmetricRewardTableInt,
     //last_action: Cell<Option<PrisonerAction>>
 
@@ -35,7 +35,7 @@ impl PrisonerInfoSet {
 
      */
 
-    pub fn previous_actions(&self) -> &Vec<EncounterReport>{
+    pub fn previous_actions(&self) -> &Vec<EncounterReportNamed>{
         &self.previous_actions
     }
 
@@ -159,7 +159,7 @@ impl InformationSet<ClassicGameDomainNamed> for PrisonerInfoSet {
         true
     }
 
-    fn update(&mut self, update: Arc<Vec<EncounterReport>>) -> Result<(), ClassicGameError<PrisonerId>> {
+    fn update(&mut self, update: Arc<Vec<EncounterReportNamed>>) -> Result<(), ClassicGameError<PrisonerId>> {
 
         let encounter = update[self.id.into_usize()];
         self.previous_actions.push(encounter);

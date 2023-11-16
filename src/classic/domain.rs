@@ -79,16 +79,19 @@ pub struct ClassicGameDomain<ID: AgentIdentifier>{
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct EncounterReport {
+pub struct EncounterReport<ID: AgentIdentifier> {
 
     pub own_action: ClassicAction,
     pub other_player_action: ClassicAction,
     pub side: Side,
-    pub other_id: PrisonerId,
+    pub other_id: ID,
 
 }
 
-impl Display for EncounterReport {
+pub type EncounterReportNamed = EncounterReport<PrisonerId>;
+pub type EncounterReportNumbered = EncounterReport<AgentNum>;
+
+impl<ID: AgentIdentifier> Display for EncounterReport<ID> {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "Update [own action: {}, opponent's action: {}]", self.own_action, self.other_player_action)
     }
@@ -170,7 +173,7 @@ pub type IntReward = i32;
 impl<ID: AgentIdentifier> DomainParameters for ClassicGameDomain<ID> {
     type ActionType = ClassicAction;
     type GameErrorType = ClassicGameError<ID>;
-    type UpdateType = Arc<Vec<EncounterReport>>;
+    type UpdateType = Arc<Vec<EncounterReport<ID>>>;
     type AgentId = ID;
     type UniversalReward = IntReward;
 }

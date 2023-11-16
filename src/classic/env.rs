@@ -5,7 +5,7 @@ use amfi::agent::AgentIdentifier;
 use amfi::env::{EnvStateSequential, EnvironmentStateUniScore};
 use amfi::domain::DomainParameters;
 use crate::classic::common::{Side, SymmetricRewardTableInt};
-use crate::classic::domain::{PRISONERS, ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerId, EncounterReport, PrisonerMap, ClassicGameDomainNamed};
+use crate::classic::domain::{PRISONERS, ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerId, EncounterReport, PrisonerMap, ClassicGameDomainNamed, EncounterReportNamed};
 use crate::classic::domain::ClassicGameError::{ActionAfterGameOver, ActionOutOfOrder};
 use crate::classic::domain::PrisonerId::{Andrzej, Janusz};
 
@@ -64,7 +64,7 @@ impl Display for PrisonerEnvState{
 }
 
 impl EnvStateSequential<ClassicGameDomainNamed> for PrisonerEnvState{
-    type Updates = Vec<(PrisonerId, Arc<Vec<EncounterReport>>)>;
+    type Updates = Vec<(PrisonerId, Arc<Vec<EncounterReportNamed>>)>;
 
     fn current_player(&self) -> Option<PrisonerId> {
         if self.previous_actions.len() >= self.target_rounds{

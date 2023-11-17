@@ -1,7 +1,7 @@
-use amfi::agent::{AgentIdentifier, InformationSet, ScoringInformationSet};
+use amfi::agent::{AgentIdentifier, InformationSet, PresentPossibleActions, ScoringInformationSet};
 use amfi::domain::DomainParameters;
 use crate::classic::common::{AsymmetricRewardTable, AsymmetricRewardTableInt};
-use crate::classic::domain::{ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward};
+use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward};
 use crate::classic::domain::ClassicGameError::EncounterNotReported;
 use crate::pairing::AgentNum;
 
@@ -64,5 +64,13 @@ impl ScoringInformationSet<ClassicGameDomainNumbered> for HistorylessInfoSet{
 
     fn penalty_for_illegal() -> Self::RewardType {
         -10
+    }
+}
+
+impl PresentPossibleActions<ClassicGameDomainNumbered> for HistorylessInfoSet{
+    type ActionIteratorType = [ClassicAction;2];
+
+    fn available_actions(&self) -> Self::ActionIteratorType {
+        [ClassicAction::Cooperate, ClassicAction::Defect]
     }
 }

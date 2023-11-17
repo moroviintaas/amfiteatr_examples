@@ -5,7 +5,7 @@ use rand::thread_rng;
 use amfi::domain::DomainParameters;
 use amfi::env::{EnvironmentStateUniScore, EnvStateSequential};
 use crate::classic::common::{AsymmetricRewardTable, AsymmetricRewardTableInt, Side};
-use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbers, ClassicGameError, EncounterReport, EncounterReportNamed, EncounterReportNumbered, IntReward};
+use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, EncounterReport, EncounterReportNamed, EncounterReportNumbered, IntReward};
 use crate::classic::domain::ClassicGameError::ActionAfterGameOver;
 
 pub type AgentNum = u32;
@@ -120,7 +120,7 @@ impl PairingState{
 
 }
 
-impl EnvStateSequential<ClassicGameDomainNumbers> for PairingState {
+impl EnvStateSequential<ClassicGameDomainNumbered> for PairingState {
     type Updates = Vec<(AgentNum, Arc<Vec<EncounterReportNumbered>>)>;
 
     fn current_player(&self) -> Option<AgentNum> {
@@ -207,7 +207,7 @@ impl EnvStateSequential<ClassicGameDomainNumbers> for PairingState {
     }
 }
 
-impl EnvironmentStateUniScore<ClassicGameDomainNumbers> for PairingState{
+impl EnvironmentStateUniScore<ClassicGameDomainNumbered> for PairingState{
     fn state_score_of_player(&self, agent: &AgentNum) -> IntReward {
         self.score_cache[*agent as usize]
     }

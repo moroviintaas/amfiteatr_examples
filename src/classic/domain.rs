@@ -56,6 +56,8 @@ pub enum ClassicGameError<ID: AgentIdentifier> {
     NotAProbability(f64),
     #[error("Odd number of players: {0}")]
     ExpectedEvenNumberOfPlayers(u32),
+    #[error("Update does no include requested encounter report for agent: {0}")]
+    EncounterNotReported(AgentNum),
 }
 
 /*
@@ -86,6 +88,27 @@ pub struct EncounterReport<ID: AgentIdentifier> {
     pub side: Side,
     pub other_id: ID,
 
+}
+
+impl<ID: AgentIdentifier> EncounterReport<ID>{
+    pub fn left_action(&self) -> ClassicAction{
+        match self.side{
+            Side::Left => self.own_action,
+            Side::Right => self.other_player_action
+        }
+    }
+    pub fn right_action(&self) -> ClassicAction{
+        match self.side{
+            Side::Left => self.other_player_action,
+            Side::Right => self.own_action
+        }
+    }
+    pub fn side_action(&self, side: Side) -> ClassicAction{
+        match side{
+            Side::Left => self.left_action(),
+            Side::Right => self.right_action(),
+        }
+    }
 }
 
 pub type EncounterReportNamed = EncounterReport<PrisonerId>;
@@ -178,4 +201,4 @@ impl<ID: AgentIdentifier> DomainParameters for ClassicGameDomain<ID> {
     type UniversalReward = IntReward;
 }
 pub type ClassicGameDomainNamed = ClassicGameDomain<PrisonerId>;
-pub type ClassicGameDomainNumbers = ClassicGameDomain<AgentNum>;
+pub type ClassicGameDomainNumbered = ClassicGameDomain<AgentNum>;

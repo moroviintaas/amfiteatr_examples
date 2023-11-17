@@ -198,7 +198,7 @@ impl ScoringInformationSet<ClassicGameDomainNamed> for PrisonerInfoSet {
         //self.previous_actions.len() as f64
     }
 
-    fn penalty_for_illegal() -> Self::RewardType {
+    fn penalty_for_illegal(&self) -> Self::RewardType {
         -100.0
     }
 }

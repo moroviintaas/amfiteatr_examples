@@ -62,7 +62,7 @@ impl ScoringInformationSet<ClassicGameDomainNumbered> for HistorylessInfoSet{
         self.payoff
     }
 
-    fn penalty_for_illegal() -> Self::RewardType {
+    fn penalty_for_illegal(&self) -> Self::RewardType {
         -10
     }
 }

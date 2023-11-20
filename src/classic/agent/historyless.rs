@@ -4,6 +4,8 @@ use crate::classic::common::{AsymmetricRewardTable, AsymmetricRewardTableInt};
 use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward};
 use crate::classic::domain::ClassicGameError::EncounterNotReported;
 use crate::pairing::AgentNum;
+use std::fmt::Display;
+use std::fmt::Formatter;
 
 #[derive(Copy, Clone, Debug)]
 pub struct HistorylessInfoSet{
@@ -11,6 +13,12 @@ pub struct HistorylessInfoSet{
     reward_table: AsymmetricRewardTableInt,
     payoff: IntReward
 
+}
+
+impl Display for HistorylessInfoSet{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        write!(f, "{:}", self.id)
+    }
 }
 
 impl HistorylessInfoSet{

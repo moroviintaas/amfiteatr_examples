@@ -14,15 +14,22 @@ use amfi_examples::classic::agent::{BoxedClassicInfoSet, HistorylessInfoSet};
 use amfi_examples::classic::common::{AsymmetricRewardTableInt, SymmetricRewardTable};
 use amfi_examples::classic::domain::{ClassicAction, ClassicGameDomainNumbered, IntReward};
 use amfi_examples::classic::policy::ClassicPureStrategy;
-use amfi_examples::pairing::PairingState;
+use amfi_examples::pairing::{PairingState, AgentNum};
+use amfi::agent::AgentWithId;
+use amfi::agent::InternalRewardedAgent;
+use amfi::agent::EnvRewardedAgent;
+use amfi::agent::TracingAgent;
 
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
 struct ReplicatorOptions{
 
-    #[arg(short = 'v', long = "log_level", value_enum, default_value = "OFF")]
+    #[arg(short = 'v', long = "log_level", value_enum, default_value = "debug")]
     pub log_level: LevelFilter,
+
+    #[arg(short = 'a', long = "log_level_amfi", value_enum, default_value = "OFF")]
+    pub log_level_amfi: LevelFilter,
 
     #[arg(short = 'o', long = "logfile")]
     pub log_file: Option<PathBuf>,
@@ -36,13 +43,40 @@ struct ReplicatorOptions{
     #[arg(short = 'e', long = "epochs", default_value = "10")]
     pub epochs: usize,
     
-    #[arg(short = 'n', long = "rounds", default_value = "10")]
+    #[arg(short = 'n', long = "rounds", default_value = "32")]
     pub number_of_rounds: usize
     
 
     //#[arg(short = 'r', long = "reward", default_value = "env")]
     //pub reward_source: RewardSource,
 
+}
+
+pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> {
+    let dispatch  = fern::Dispatch::new()
+
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(options.log_level)
+        //.level_for("amfi_examples", options.log_level)
+        //.level_for("pairing", options.log_level)
+        //.level_for("classic", options.log_level);
+        .level_for("amfi", options.log_level_amfi);
+
+        match &options.log_file{
+            None => dispatch.chain(std::io::stdout()),
+            Some(f) => dispatch.chain(fern::log_file(f)?)
+        }
+
+        .apply()?;
+    Ok(())
 }
 
 fn main(){
@@ -57,15 +91,16 @@ fn main(){
     let env_state_template = PairingState::new_even(number_of_players as u32, args.number_of_rounds, reward_table).unwrap();
 
     let mut comms = HashMap::<u32, SyncCommEnv<ClassicGameDomainNumbered>>::with_capacity(number_of_players);
-    let mut agents = Vec::<Arc<Mutex<Box<dyn AutomaticAgentBothPayoffs <Domain, InternalReward= IntReward> + Send>>>>::with_capacity(number_of_players);
-
+    //let mut agents = Vec::<Arc<Mutex<Box<dyn AutomaticAgentBothPayoffs <Domain, InternalReward= IntReward> + Send>>>>::with_capacity(number_of_players);
+    //let mut agents = Vec::<Arc<Mutex<AgentGenT<Domain, ClassicPureStrategy<AgentNum, HistorylessInfoSet>, Sync>>::with_capacity(number_of_players);
+    let mut agents = Vec::with_capacity(number_of_players);
     for i in 0..number_of_players/2{
         
         let comm_pair = SyncCommEnv::new_pair();
         let policy = ClassicPureStrategy::new(ClassicAction::Cooperate);
         let agent = AgentGenT::new( HistorylessInfoSet::new(i as u32, reward_table.clone()), comm_pair.1, policy);
         comms.insert(i as u32, comm_pair.0);
-        agents.push(Arc::new(Mutex::new(Box::new(agent))));
+        agents.push(Arc::new(Mutex::new(agent)));
     }
     for i in number_of_players/2..number_of_players{
 
@@ -73,7 +108,7 @@ fn main(){
         let policy = ClassicPureStrategy::new(ClassicAction::Defect);
         let agent = AgentGenT::new( HistorylessInfoSet::new(i as u32, reward_table.clone()), comm_pair.1, policy);
         comms.insert(i as u32, comm_pair.0);
-        agents.push(Arc::new(Mutex::new(Box::new(agent))));
+        agents.push(Arc::new(Mutex::new(agent)));
     }
 
     let mut environment = HashMapEnv::new(env_state_template.clone(), comms);
@@ -104,7 +139,10 @@ fn main(){
     }
 
     let a = agents[0].lock().unwrap();
-    //println!("{:}", a.)
+    for tl in a.game_trajectory().list(){
+        println!("{:}", tl);
+    }
+    
 
 }
 

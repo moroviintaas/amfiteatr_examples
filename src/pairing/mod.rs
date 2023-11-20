@@ -7,6 +7,8 @@ use amfi::env::{EnvironmentStateUniScore, EnvStateSequential};
 use crate::classic::common::{AsymmetricRewardTable, AsymmetricRewardTableInt, Side};
 use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, EncounterReport, EncounterReportNamed, EncounterReportNumbered, IntReward};
 use crate::classic::domain::ClassicGameError::ActionAfterGameOver;
+use log::{debug};
+use std::fmt::{Display, Formatter};
 
 pub type AgentNum = u32;
 #[derive(Debug, Clone)]
@@ -30,6 +32,21 @@ pub struct PlayerPairing {
     pub paired_player: AgentNum,
     pub taken_action: Option<ClassicAction>,
     pub side: Side
+}
+
+impl Display for PlayerPairing{
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        //write!(f, "({}-{})", self.id)
+        let a = match self.taken_action{
+            None => String::from("0"),
+            Some(a) => format!("{:?}", a)
+        };
+        match self.side{
+            Side::Left => write!(f, "[{} -> {}]", &a, self.paired_player),
+            Side::Right => write!(f, "[{} <- {}]", self.paired_player, &a),
+
+        }
+    }
 }
 
 pub type PairingVec = Vec<PlayerPairing>;
@@ -60,6 +77,8 @@ impl PairingState{
         let mut indexes: Vec<u32> = (0..players as u32).into_iter().collect();
         let mut rng = thread_rng();
         indexes.shuffle(&mut rng);
+        //debug!("Shuffled indexes: {:?}", &indexes);
+        //println!("Shuffled indexes: {:?}", &indexes);
         let actual_pairings = Self::create_pairings(&indexes[..])?;
 
         let mut score_cache = Vec::with_capacity(indexes.len());
@@ -82,16 +101,20 @@ impl PairingState{
             let mut v = Vec::with_capacity(indexes.len());
             v.resize_with(indexes.len(), || PlayerPairing::default());
             for i in 0..indexes.len(){
+                let index:usize = indexes[i] as usize;
                 if i & 0x01 == 0{
+
+                    
                     //even
-                    v[i] = PlayerPairing{
+                    v[index] = PlayerPairing{
                         paired_player: indexes[i+1],
                         taken_action: None,
                         side: Side::Left,
                     }
 
                 } else {
-                    v[i] = PlayerPairing{
+                    
+                    v[index] = PlayerPairing{
                         paired_player: indexes[i-1],
                         taken_action: None,
                         side: Side::Right,
@@ -107,9 +130,15 @@ impl PairingState{
 
         let mut rng = thread_rng();
         self.indexes.shuffle(&mut rng);
+        //debug!("Shuffled indexes: {:?}", &self.indexes);
+        //println!("Shuffled indexes: {:?}", &self.indexes);
         let mut pairings = Self::create_pairings(&self.indexes[..])?;
         std::mem::swap(&mut pairings, &mut self.actual_pairings);
+        //debug!("Pairings: {:?}", &self.actual_pairings);
+        //println!("Pairings: {:?}", &self.actual_pairings);
         self.previous_pairings.push(Arc::new(pairings));
+
+        
         Ok(())
 
     }

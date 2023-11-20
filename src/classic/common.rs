@@ -18,7 +18,7 @@ impl Default for Side{
 #[derive(Debug, Clone, Serialize, Deserialize, Copy)]
 pub struct SymmetricRewardTable<R: Reward + Copy> {
 
-    la: EnumMap<ClassicAction, EnumMap<ClassicAction, R>>
+    pub map: EnumMap<ClassicAction, EnumMap<ClassicAction, R>>
 
     //pub coop_when_coop: R,
     //pub coop_when_defect: R,
@@ -33,7 +33,7 @@ impl<R: Reward + Copy> SymmetricRewardTable<R> {
 
     pub fn new(coop_when_coop: R, coop_when_defect: R, defect_when_coop: R, defect_when_defect: R) -> Self{
         Self{
-            la: enum_map! {
+            map: enum_map! {
                 ClassicAction::Defect => enum_map! {
                     ClassicAction::Defect => defect_when_defect,
                     ClassicAction::Cooperate => defect_when_coop,
@@ -56,7 +56,7 @@ impl<R: Reward + Copy> SymmetricRewardTable<R> {
         }
 
          */
-        self.la[action][other_action]
+        self.map[action][other_action]
     }
 
 }
@@ -99,7 +99,13 @@ impl<R: Reward + Copy> AsymmetricRewardTable<R> {
 
 impl<R: Reward + Copy> From<SymmetricRewardTable<R>> for AsymmetricRewardTable<R>{
     fn from(value: SymmetricRewardTable<R>) -> Self {
-        AsymmetricRewardTable::new(value, value)
+        let mut reverted = value.clone();
+        reverted.map[ClassicAction::Cooperate][ClassicAction::Defect] = 
+            value.map[ClassicAction::Defect][ClassicAction::Cooperate];
+        reverted.map[ClassicAction::Defect][ClassicAction::Cooperate] = 
+            value.map[ClassicAction::Cooperate][ClassicAction::Defect];
+
+        AsymmetricRewardTable::new(value, reverted)
     }
 }
 

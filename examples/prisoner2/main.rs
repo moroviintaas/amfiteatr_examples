@@ -49,13 +49,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     setup_logger(LevelFilter::Debug, &None).unwrap();
 
     let reward_table = SymmetricRewardTableInt::new(5, 1, 10, 3);
-    /*{
-        /*coop_when_coop: 5,
-        defect_when_coop: 10,
-        defect_when_defect: 3,
-        coop_when_defect: 1*/
-        //enum_map!()
-    };*/
+
 
 
     let env_state = PrisonerEnvState::new(reward_table,  10);
@@ -90,27 +84,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     println!("Scenario 2");
 
 
-    /*
-    let env_state = PrisonerEnvState::new(reward_table,  100);
 
-    let (comm_env_0, comm_prisoner_0) = SyncCommEnv::new_pair();
-    let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
-
-    let mut prisoner0 = AgentGenT::new(
-        Andrzej,
-        PrisonerState::new(reward_table), comm_prisoner_0, RandomPrisonerPolicy{});
-
-    let mut prisoner1 = AgentGenT::new(
-        Janusz,
-        PrisonerState::new(reward_table), comm_prisoner_1, BetrayRatioPolicy{});
-
-    let mut env_coms = HashMap::new();
-    env_coms.insert(Andrzej, comm_env_0);
-    env_coms.insert(Janusz, comm_env_1);
-
-    let mut env = TracingGenericEnv::new( env_state, env_coms);
-
-     */
 
     env.reinit(PrisonerEnvState::new(reward_table.clone(), 10));
     let mut prisoner0 = prisoner0.transform_replace_policy(RandomPrisonerPolicy{});

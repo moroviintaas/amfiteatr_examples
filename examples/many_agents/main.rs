@@ -7,9 +7,9 @@ use tch::Device;
 use amfi::domain::RewardSource;
 use clap::Parser;
 use amfi::agent::{AgentGenT, AutomaticAgentBothPayoffs, AutomaticAgentRewarded, ScoringInformationSet, TracingAutomaticAgent};
-use amfi::comm::SyncCommEnv;
-use amfi::env::generic::HashMapEnv;
-use amfi::env::RoundRobinUniversalEnvironment;
+use amfi::comm::{EnvMpscPort, SyncCommEnv};
+use amfi::env::generic::{BasicEnvironment, HashMapEnv};
+use amfi::env::{AutoEnvironment, AutoEnvironmentWithScores, RoundRobinUniversalEnvironment};
 use amfi_examples::classic::agent::{BoxedClassicInfoSet, HistorylessInfoSet};
 use amfi_examples::classic::common::{AsymmetricRewardTableInt, SymmetricRewardTable};
 use amfi_examples::classic::domain::{ClassicAction, ClassicGameDomainNumbered, IntReward};
@@ -23,7 +23,7 @@ use amfi::agent::TracingAgent;
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
-struct ReplicatorOptions{
+pub struct ReplicatorOptions{
 
     #[arg(short = 'v', long = "log_level", value_enum, default_value = "debug")]
     pub log_level: LevelFilter,
@@ -91,31 +91,38 @@ fn main(){
     let env_state_template = PairingState::new_even(number_of_players as u32, args.number_of_rounds, reward_table).unwrap();
 
     let mut comms = HashMap::<u32, SyncCommEnv<ClassicGameDomainNumbered>>::with_capacity(number_of_players);
-    //let mut agents = Vec::<Arc<Mutex<Box<dyn AutomaticAgentBothPayoffs <Domain, InternalReward= IntReward> + Send>>>>::with_capacity(number_of_players);
-    //let mut agents = Vec::<Arc<Mutex<AgentGenT<Domain, ClassicPureStrategy<AgentNum, HistorylessInfoSet>, Sync>>::with_capacity(number_of_players);
+
     let mut agents = Vec::with_capacity(number_of_players);
+
+    let mut env_adapter = EnvMpscPort::new();
+
+
     for i in 0..number_of_players/2{
-        
-        let comm_pair = SyncCommEnv::new_pair();
         let policy = ClassicPureStrategy::new(ClassicAction::Cooperate);
-        let agent = AgentGenT::new( HistorylessInfoSet::new(i as u32, reward_table.clone()), comm_pair.1, policy);
-        comms.insert(i as u32, comm_pair.0);
+        //let comm_pair = SyncCommEnv::new_pair();
+        //let agent = AgentGenT::new( HistorylessInfoSet::new(i as u32, reward_table.clone()), comm_pair.1, policy);
+        //comms.insert(i as u32, comm_pair.0);
+
+        let agnt_comm = env_adapter.register_agent(i as u32).unwrap();
+        let agent = AgentGenT::new( HistorylessInfoSet::new(i as u32, reward_table.clone()), agnt_comm, policy);
         agents.push(Arc::new(Mutex::new(agent)));
     }
     for i in number_of_players/2..number_of_players{
-
-        let comm_pair = SyncCommEnv::new_pair();
         let policy = ClassicPureStrategy::new(ClassicAction::Defect);
-        let agent = AgentGenT::new( HistorylessInfoSet::new(i as u32, reward_table.clone()), comm_pair.1, policy);
-        comms.insert(i as u32, comm_pair.0);
+        //let comm_pair = SyncCommEnv::new_pair();
+
+        //let agent = AgentGenT::new( HistorylessInfoSet::new(i as u32, reward_table.clone()), comm_pair.1, policy);
+        //comms.insert(i as u32, comm_pair.0);
+        let agnt_comm = env_adapter.register_agent(i as u32).unwrap();
+        let agent = AgentGenT::new( HistorylessInfoSet::new(i as u32, reward_table.clone()), agnt_comm, policy);
         agents.push(Arc::new(Mutex::new(agent)));
     }
 
-    let mut environment = HashMapEnv::new(env_state_template.clone(), comms);
-
+    //let mut environment = HashMapEnv::new(env_state_template.clone(), comms);
+    let mut environment = BasicEnvironment::new(env_state_template.clone(), env_adapter);
     thread::scope(|s|{
         s.spawn(||{
-            environment.run_round_robin_uni_rewards().unwrap();
+            environment.run_with_scores().unwrap();
         });
 
         for mut a in &agents{

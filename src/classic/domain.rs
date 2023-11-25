@@ -4,17 +4,44 @@ use std::ops::{Index, IndexMut};
 use std::sync::Arc;
 use amfi::agent::{AgentIdentifier};
 use amfi::error::{AmfiError};
-use amfi::domain::{Action, DomainParameters};
+use amfi::domain::{Action, DomainParameters, Reward};
 use crate::classic::domain::PrisonerId::{Andrzej, Janusz};
 use enum_map::Enum;
 use serde::{Deserialize, Serialize};
-use crate::classic::common::Side;
-use crate::pairing::AgentNum;
+use crate::classic::common::{AsymmetricRewardTable, Side};
+use crate::pairing::{AgentNum, PairingVec};
+
+pub trait AsUsize{
+    fn as_usize(&self) -> usize;
+    fn make_from_usize(u: usize) -> Self;
+}
+/*
+impl<T: Enum + Copy> AsUsize for T{
+    fn as_usize(&self) -> usize {
+        self.into_usize()
+    }
+}
+
+ */
+pub trait UsizeAgentId: AgentIdentifier + AsUsize + Copy{}
+impl<T: AsUsize + AgentIdentifier + Copy> UsizeAgentId for T{
+
+}
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Enum, Serialize, Deserialize)]
 pub enum ClassicAction {
     Defect,
     Cooperate
+}
+
+impl AsUsize for ClassicAction{
+    fn as_usize(&self) -> usize {
+        self.into_usize()
+    }
+
+    fn make_from_usize(u: usize) -> Self {
+        Self::make_from_usize(u)
+    }
 }
 
 impl Display for ClassicAction {
@@ -68,7 +95,7 @@ impl Into<AmfiError<PrisonerDomain>> for PrisonerError {
 }
 
  */
-impl<ID: AgentIdentifier> From<ClassicGameError<ID>> for AmfiError<ClassicGameDomain<ID>>{
+impl<ID: UsizeAgentId> From<ClassicGameError<ID>> for AmfiError<ClassicGameDomain<ID>>{
     fn from(value: ClassicGameError<ID>) -> Self {
         AmfiError::Game(value)
     }
@@ -109,6 +136,16 @@ impl<ID: AgentIdentifier> EncounterReport<ID>{
             Side::Right => self.right_action(),
         }
     }
+    pub fn own_side(&self) -> Side{
+        self.side
+    }
+    pub fn calculate_reward<R: Reward + Copy>(&self, table: &AsymmetricRewardTable<R>) -> R{
+        let (left, right) = match self.side{
+            Side::Left => (self.own_action, self.other_player_action),
+            Side::Right => (self.other_player_action, self.own_action),
+        };
+        table.reward_for_side(self.side, left, right)
+    }
 }
 
 pub type EncounterReportNamed = EncounterReport<PrisonerId>;
@@ -128,6 +165,16 @@ pub enum PrisonerId{
     Andrzej,
     Janusz
 }
+impl AsUsize for PrisonerId{
+    fn as_usize(&self) -> usize {
+        self.into_usize()
+    }
+
+    fn make_from_usize(u: usize) -> Self {
+        PrisonerId::from_usize(u)
+    }
+}
+
 
 impl PrisonerId{
     pub fn other(self) -> Self{
@@ -193,10 +240,16 @@ pub const PRISONERS:[PrisonerId;2] = [PrisonerId::Andrzej, PrisonerId::Janusz];
 pub type IntReward = i32;
 
 
-impl<ID: AgentIdentifier> DomainParameters for ClassicGameDomain<ID> {
+#[derive(Debug, Clone)]
+pub struct ClassicGameUpdate<ID: UsizeAgentId>{
+    pub encounters: Arc<Vec<EncounterReport<ID>>>,
+    pub pairing:  Option<Arc<PairingVec<ID>>>
+}
+
+impl<ID: UsizeAgentId> DomainParameters for ClassicGameDomain<ID> {
     type ActionType = ClassicAction;
     type GameErrorType = ClassicGameError<ID>;
-    type UpdateType = Arc<Vec<EncounterReport<ID>>>;
+    type UpdateType = ClassicGameUpdate<ID>;
     type AgentId = ID;
     type UniversalReward = IntReward;
 }

@@ -1,5 +1,6 @@
 mod prisoner;
 mod historyless;
+mod own_history;
 
 
 use std::fmt::{Debug, Formatter, Pointer};
@@ -9,6 +10,7 @@ pub use prisoner::*;
 pub use historyless::*;
 use crate::classic::domain::{ClassicAction, ClassicGameDomainNumbered, IntReward};
 use crate::pairing::AgentNum;
+pub use own_history::*;
 
 
 #[derive(Debug)]

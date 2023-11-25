@@ -88,7 +88,7 @@ fn main(){
     let number_of_players = 32;
     let reward_table: AsymmetricRewardTableInt =
         SymmetricRewardTable::new(2, 1, 4, 0).into();
-    let env_state_template = PairingState::new_even(number_of_players as u32, args.number_of_rounds, reward_table).unwrap();
+    let env_state_template = PairingState::new_even(number_of_players, args.number_of_rounds, reward_table).unwrap();
 
     let mut comms = HashMap::<u32, SyncCommEnv<ClassicGameDomainNumbered>>::with_capacity(number_of_players);
 

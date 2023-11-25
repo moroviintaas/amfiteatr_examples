@@ -7,9 +7,10 @@ use amfi::domain::{DomainParameters, Reward};
 use amfi::error::ConvertError;
 use amfi_rl::tensor_repr::{ActionTensor, ConvertToTensor, ConvStateToTensor, WayToTensor};
 use crate::classic::common::SymmetricRewardTableInt;
-use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed, ClassicGameError, PrisonerId, EncounterReport, EncounterReportNamed};
+use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed, ClassicGameError, PrisonerId, EncounterReport, EncounterReportNamed, ClassicGameUpdate};
 use crate::classic::domain::ClassicAction::{Defect, Cooperate};
 use enum_map::Enum;
+use amfi_rl::error::TensorRepresentationError;
 
 #[derive(Clone, Debug)]
 pub struct PrisonerInfoSet {
@@ -162,9 +163,9 @@ impl InformationSet<ClassicGameDomainNamed> for PrisonerInfoSet {
         true
     }
 
-    fn update(&mut self, update: Arc<Vec<EncounterReportNamed>>) -> Result<(), ClassicGameError<PrisonerId>> {
+    fn update(&mut self, update: ClassicGameUpdate<PrisonerId>) -> Result<(), ClassicGameError<PrisonerId>> {
 
-        let encounter = update[self.id.into_usize()];
+        let encounter = update.encounters[self.id.into_usize()];
         self.previous_actions.push(encounter);
         Ok(())
     }
@@ -263,13 +264,13 @@ impl ActionTensor for ClassicAction {
 pub struct PrisonerInfoSetWay{}
 const PRISONER_INFOSET_SHAPE: [i64;1] = [512];
 impl WayToTensor for PrisonerInfoSetWay{
-    fn desired_shape() -> &'static [i64] {
+    fn desired_shape(&self) -> &'static [i64] {
         &PRISONER_INFOSET_SHAPE[..]
     }
 }
 
 impl ConvertToTensor<PrisonerInfoSetWay> for PrisonerInfoSet {
-    fn to_tensor(&self, _way: &PrisonerInfoSetWay) -> Tensor {
+    fn try_to_tensor(&self, _way: &PrisonerInfoSetWay) -> Result<Tensor, TensorRepresentationError> {
         let mut array = [0.0f32;2*256];
         for i in 0..self.previous_actions().len(){
             array[2*i] = match self.previous_actions()[i].own_action{
@@ -281,6 +282,6 @@ impl ConvertToTensor<PrisonerInfoSetWay> for PrisonerInfoSet {
                 Cooperate => 2.0,
             };
         }
-        Tensor::from_slice(&array[..])
+        Ok(Tensor::from_slice(&array[..]))
     }
 }

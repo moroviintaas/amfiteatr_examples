@@ -1,7 +1,7 @@
 use amfi::agent::{AgentIdentifier, InformationSet, PresentPossibleActions, ScoringInformationSet};
 use amfi::domain::DomainParameters;
 use crate::classic::common::{AsymmetricRewardTable, AsymmetricRewardTableInt};
-use crate::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward};
+use crate::classic::domain::{AsUsize, ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, ClassicGameError, IntReward};
 use crate::classic::domain::ClassicGameError::EncounterNotReported;
 use crate::pairing::AgentNum;
 use std::fmt::Display;
@@ -46,7 +46,7 @@ impl InformationSet<ClassicGameDomain<AgentNum>> for HistorylessInfoSet{
 
     fn update(&mut self, update: <ClassicGameDomainNumbered as DomainParameters>::UpdateType) -> Result<(), ClassicGameError<AgentNum>> {
 
-        if let Some(this_encounter_report) = update.get(self.id.clone() as usize){
+        if let Some(this_encounter_report) = update.encounters.get(self.id.as_usize()){
             let reward = self.reward_table
                 .reward_for_side(this_encounter_report.side, this_encounter_report.left_action(), this_encounter_report.right_action());
 

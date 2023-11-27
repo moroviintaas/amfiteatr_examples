@@ -150,6 +150,7 @@ impl<ID: UsizeAgentId> PairingState<ID>{
 
         let mut rng = thread_rng();
         self.indexes.shuffle(&mut rng);
+        debug!("Preparing new pairings for indexes: {:?}", self.indexes);
         //debug!("Shuffled indexes: {:?}", &self.indexes);
         //println!("Shuffled indexes: {:?}", &self.indexes);
         let mut pairings = Self::create_pairings(&self.indexes[..])?;
@@ -208,6 +209,9 @@ impl<ID: UsizeAgentId> EnvStateSequential<ClassicGameDomain<ID>> for PairingStat
     type Updates = Vec<(ID, ClassicGameUpdate<ID>)>;
 
     fn current_player(&self) -> Option<ID> {
+        if self.is_finished(){
+            return None;
+        }
         if self.current_player_index  < self.actual_pairings.len(){
             Some(ID::make_from_usize(self.current_player_index))
         } else {
@@ -223,6 +227,7 @@ impl<ID: UsizeAgentId> EnvStateSequential<ClassicGameDomain<ID>> for PairingStat
         -> Result<Self::Updates, ClassicGameError<ID>> {
         if let Some(destined_agent) = self.current_player(){
             if destined_agent == agent{
+                debug!("Forwarding environment with agent {agent:} action: {action:?}");
                 self.actual_pairings[agent.as_usize()].taken_action = Some(action);
                 let this_pairing = self.actual_pairings[agent.as_usize()];
                 let other_player_index = this_pairing.paired_player;
@@ -244,8 +249,9 @@ impl<ID: UsizeAgentId> EnvStateSequential<ClassicGameDomain<ID>> for PairingStat
                 }
                 //set next index
                 self.current_player_index +=1;
-
+                debug!("Next player index would be {:?}", self.current_player_index);
                 if self.current_player_index >= self.actual_pairings.len(){
+
 
 
                     let encounters_vec: Vec<EncounterReport<ID>> = (0..self.actual_pairings.len())
@@ -264,6 +270,7 @@ impl<ID: UsizeAgentId> EnvStateSequential<ClassicGameDomain<ID>> for PairingStat
 
                     self.prepare_new_pairing()?;
                     self.current_player_index = 0;
+                    debug!("Last player in round played, preparing new round, setting player index to 0");
 
                     let opairings = match self.is_finished(){
                         true => None,
@@ -289,7 +296,7 @@ impl<ID: UsizeAgentId> EnvStateSequential<ClassicGameDomain<ID>> for PairingStat
 
 
             } else{
-                Err(ClassicGameError::ViolatedOrder(agent))
+                Err(ClassicGameError::GameViolatedOrder { acted: agent, expected: self.current_player() })
             }
 
         } else {
@@ -307,9 +314,11 @@ impl<ID: UsizeAgentId> EnvironmentStateUniScore<ClassicGameDomain<ID>> for Pairi
 
 impl<ID: UsizeAgentId> Renew<()> for PairingState<ID>{
     fn renew_from(&mut self, _base: ()) {
-        self.score_cache.clear();
+        debug!("Renewing state");
+        self.score_cache.iter_mut().for_each(|a|*a=0);
         self.previous_pairings.clear();
         self.current_player_index = 0;
         self.prepare_new_pairing().unwrap();
+        debug!("After renewing state, with pairings of length = {}", self.actual_pairings.len())
     }
 }

@@ -2,7 +2,7 @@ use std::{default, thread};
 use std::marker::PhantomData;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
-use log::LevelFilter;
+use log::{debug, info, LevelFilter};
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
 use amfi_examples::classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr, PrisonerInfoSet, PrisonerInfoSetWay};
@@ -12,10 +12,12 @@ use amfi_examples::pairing::{AgentNum, PairingState};
 use amfi_rl::tensor_repr::{ConvertToTensor, WayToTensor};
 use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::Parser;
-use amfi::agent::{AgentGenT, AutomaticAgentRewarded, TracingAgent};
+use amfi::agent::{AgentGenT, AutomaticAgentRewarded, EnvRewardedAgent, MultiEpisodeAgent, ReseedAgent, TracingAgent};
 use amfi::comm::EnvMpscPort;
-use amfi::env::{AutoEnvironmentWithScores, ScoreEnvironment, TracingEnv};
+use amfi::domain::Renew;
+use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi::env::generic::{BasicEnvironment, TracingEnvironment};
+use amfi::error::AmfiError;
 use amfi_examples::classic::policy::ClassicPureStrategy;
 use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::TrainConfig;
@@ -24,7 +26,7 @@ use amfi_rl::TrainConfig;
 #[command(author, version, about, long_about = None)]
 pub struct EducatorOptions{
 
-    #[arg(short = 'v', long = "log_level", value_enum, default_value = "debug")]
+    #[arg(short = 'v', long = "log_level", value_enum, default_value = "info")]
     pub log_level: LevelFilter,
 
     #[arg(short = 'a', long = "log_level_amfi", value_enum, default_value = "OFF")]
@@ -52,7 +54,7 @@ pub struct EducatorOptions{
 }
 
 pub struct ModelElements<ID: UsizeAgentId, Seed>{
-    environment: Arc<Mutex<dyn AutoEnvironmentWithScores<ClassicGameDomain<ID>>>>,
+    pub environment: Arc<Mutex<dyn AutoEnvironmentWithScores<ClassicGameDomain<ID>>>>,
     agents: [Arc<Mutex<dyn AutomaticAgentRewarded<ClassicGameDomain<ID>>>>;2],
     seed: PhantomData<Seed>,
 }
@@ -69,7 +71,7 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
                 message
             ))
         })
-        //.level(options.log_level)
+        .level(options.log_level)
         .level_for("amfi_examples", options.log_level)
         //.level_for("pairing", options.log_level)
         //.level_for("classic", options.log_level);
@@ -83,11 +85,36 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
         .apply()?;
     Ok(())
 }
+type Domain = ClassicGameDomain<AgentNum>;
 
+pub fn run_game(
+    env: &mut (impl AutoEnvironmentWithScores<Domain> + Send + ReseedEnvironment<Domain, ()>),
+    agent0: &mut (impl MultiEpisodeAgent<Domain> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>),
+    agent1: &mut (impl MultiEpisodeAgent<Domain> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>))
+    -> Result<(), AmfiError<Domain>>{
 
-fn main() {
+    thread::scope(|s|{
+        s.spawn(||{
+            env.reseed(());
+            env.run_with_scores().unwrap();
+        });
+        s.spawn(||{
+            agent0.reseed(());
+            agent0.run_rewarded().unwrap()
+        });
+        s.spawn(||{
+            agent1.reseed(());
+            agent1.run_rewarded().unwrap()
+        });
+    });
+    Ok(())
+
+}
+
+fn main() -> Result<(), AmfiError<Domain>>{
 
     let args = EducatorOptions::parse();
+    setup_logger(&args);
     let device = Device::Cpu;
     type Domain = ClassicGameDomainNumbered;
     let number_of_players = 2;
@@ -121,6 +148,7 @@ fn main() {
 
 
 
+
     //let normal_policy =
 
 
@@ -143,13 +171,28 @@ fn main() {
 
 
     let state1 = OwnHistoryInfoSet::new(1, reward_table.into());
-    let test_policy = ClassicPureStrategy::new(ClassicAction::Defect);
+    //let test_policy = ClassicPureStrategy::new(ClassicAction::Defect);
 
-    let mut test_agent = AgentGenT::new(state1, comm1, test_policy);
+    let net1 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
+    let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
+    let policy1 = ActorCriticPolicy::new(net1, opt1, tensor_repr, TrainConfig {gamma: 0.99});
+    let mut test_agent = AgentGenT::new(state1, comm1, policy1);
 
 
     //evaluate on start
+    let mut scores = [Vec::new(), Vec::new()];
+    for i in 0..100{
+        debug!("Plaing round: {i:} of initial simulation");
+        run_game(&mut environment, &mut normal_agent, &mut test_agent)?;
+        scores[0].push(normal_agent.current_universal_score());
+        scores[1].push(test_agent.current_universal_score());
 
+
+    }
+    let avg = [scores[0].iter().sum::<i32>()/(scores[0].len() as i32),
+            scores[1].iter().sum::<i32>()/(scores[1].len() as i32)];
+        println!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
+    /*
     thread::scope(|s|{
         s.spawn(||{
             environment.run_with_scores().unwrap();
@@ -162,6 +205,15 @@ fn main() {
         });
     });
 
+
+     */
+
+    for e in 0..args.epochs{
+        
+        info!("Starting epoch {e:}")
+    }
+
+
     println!("{}", normal_agent.game_trajectory().list().last().unwrap());
 
 
@@ -171,6 +223,6 @@ fn main() {
     println!("Scores: 0: {},\t1: {}", environment.actual_score_of_player(&0), environment.actual_score_of_player(&1));
 
 
-
+    Ok(())
     //let standard_strategy =
 }

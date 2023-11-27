@@ -71,8 +71,11 @@ pub enum ClassicGameError<ID: AgentIdentifier> {
         chosen: ClassicAction,
         logged: ClassicAction
     },
-    #[error("Order in game was violated. Current player given by current_player(): {0} was rejected in forward()")]
-    ViolatedOrder(ID),
+    #[error("Order in game was violated. Current player given by current_player(): {expected:?} given: {acted:}")]
+    GameViolatedOrder{
+        acted: ID,
+        expected: Option<ID>
+    },
     #[error("Environment logged action {0}, but none was performed")]
     NoLastAction(ClassicAction),
     #[error("Player: {0} played after GameOver")]

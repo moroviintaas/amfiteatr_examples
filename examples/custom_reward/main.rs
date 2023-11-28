@@ -12,7 +12,7 @@ use amfi_examples::pairing::{AgentNum, PairingState};
 use amfi_rl::tensor_repr::{ConvertToTensor, WayToTensor};
 use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::Parser;
-use amfi::agent::{AgentGenT, AutomaticAgentRewarded, EnvRewardedAgent, MultiEpisodeAgent, ReseedAgent, TracingAgent};
+use amfi::agent::{AgentGenT, AutomaticAgentRewarded, EnvRewardedAgent, MultiEpisodeAgent, PolicyAgent, ReseedAgent, TracingAgent};
 use amfi::comm::EnvMpscPort;
 use amfi::domain::Renew;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
@@ -20,7 +20,7 @@ use amfi::env::generic::{BasicEnvironment, TracingEnvironment};
 use amfi::error::AmfiError;
 use amfi_examples::classic::policy::ClassicPureStrategy;
 use amfi_rl::actor_critic::ActorCriticPolicy;
-use amfi_rl::TrainConfig;
+use amfi_rl::{LearningNetworkPolicy, TrainConfig};
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -41,10 +41,13 @@ pub struct EducatorOptions{
     #[arg(short = 'l', long = "load")]
     pub load_file: Option<PathBuf>,
 
-    #[arg(short = 'e', long = "epochs", default_value = "10")]
+    #[arg(short = 'e', long = "epochs", default_value = "1000")]
     pub epochs: usize,
 
-    #[arg(short = 'n', long = "rounds", default_value = "32")]
+    #[arg(short = 'b', long = "batch", default_value = "64")]
+    pub batch_size: usize,
+
+    #[arg(short = 'n', long = "rounds", default_value = "100")]
     pub number_of_rounds: usize
 
 
@@ -100,11 +103,11 @@ pub fn run_game(
         });
         s.spawn(||{
             agent0.reseed(());
-            agent0.run_rewarded().unwrap()
+            agent0.run_episode_rewarded().unwrap()
         });
         s.spawn(||{
             agent1.reseed(());
-            agent1.run_rewarded().unwrap()
+            agent1.run_episode_rewarded().unwrap()
         });
     });
     Ok(())
@@ -114,7 +117,7 @@ pub fn run_game(
 fn main() -> Result<(), AmfiError<Domain>>{
 
     let args = EducatorOptions::parse();
-    setup_logger(&args);
+    setup_logger(&args).unwrap();
     let device = Device::Cpu;
     type Domain = ClassicGameDomainNumbered;
     let number_of_players = 2;
@@ -191,30 +194,36 @@ fn main() -> Result<(), AmfiError<Domain>>{
     }
     let avg = [scores[0].iter().sum::<i32>()/(scores[0].len() as i32),
             scores[1].iter().sum::<i32>()/(scores[1].len() as i32)];
-        println!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
-    /*
-    thread::scope(|s|{
-        s.spawn(||{
-            environment.run_with_scores().unwrap();
-        });
-        s.spawn(||{
-            normal_agent.run_rewarded().unwrap()
-        });
-        s.spawn(||{
-            test_agent.run_rewarded().unwrap()
-        });
-    });
+        info!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
 
-
-     */
 
     for e in 0..args.epochs{
-        
-        info!("Starting epoch {e:}")
+        normal_agent.clear_episodes();
+        test_agent.clear_episodes();
+        info!("Starting epoch {e:}");
+        for g in 0..args.batch_size{
+            run_game(&mut environment, &mut normal_agent, &mut test_agent)?;
+        }
+        let trajectories_0 = normal_agent.take_episodes();
+        let trajectories_1 = test_agent.take_episodes();
+        normal_agent.policy_mut().train_on_trajectories_env_reward(&trajectories_0[..])?;
+        test_agent.policy_mut().train_on_trajectories_env_reward(&trajectories_1[..])?;
+
+        let mut scores = [Vec::new(), Vec::new()];
+        for i in 0..100{
+            debug!("Plaing round: {i:} of initial simulation");
+            run_game(&mut environment, &mut normal_agent, &mut test_agent)?;
+            scores[0].push(normal_agent.current_universal_score());
+            scores[1].push(test_agent.current_universal_score());
+
+        }
+        let avg = [scores[0].iter().sum::<i32>() as f64 /(scores[0].len() as f64),
+            scores[1].iter().sum::<i32>() as f64/(scores[1].len() as f64)];
+        info!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
     }
 
-
-    println!("{}", normal_agent.game_trajectory().list().last().unwrap());
+    run_game(&mut environment, &mut normal_agent, &mut test_agent)?;
+    println!("{}", normal_agent.take_episodes().last().unwrap().list().last().unwrap());
 
 
 

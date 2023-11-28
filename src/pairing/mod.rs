@@ -315,7 +315,10 @@ impl<ID: UsizeAgentId> EnvironmentStateUniScore<ClassicGameDomain<ID>> for Pairi
 impl<ID: UsizeAgentId> Renew<()> for PairingState<ID>{
     fn renew_from(&mut self, _base: ()) {
         debug!("Renewing state");
-        self.score_cache.iter_mut().for_each(|a|*a=0);
+        //self.score_cache.iter_mut().for_each(|a|*a=0);
+        for i in 0..self.score_cache.len(){
+            self.score_cache[i] = 0;
+        }
         self.previous_pairings.clear();
         self.current_player_index = 0;
         self.prepare_new_pairing().unwrap();

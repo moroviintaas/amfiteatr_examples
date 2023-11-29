@@ -10,10 +10,10 @@ use amfi::comm::{SyncCommAgent, SyncCommEnv};
 use amfi::env::generic::HashMapEnvT;
 use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment};
 use amfi::error::AmfiError;
-use amfi_examples::classic::agent::{*};
-use amfi_examples::classic::common::SymmetricRewardTableInt;
-use amfi_examples::classic::domain::{ClassicGameDomain, ClassicGameDomainNamed};
-use amfi_examples::classic::domain::PrisonerId::{Andrzej, Janusz};
+use amfi_classic::agent::{PrisonerInfoSet, PrisonerInfoSetWay, SwitchOnTwoSubsequent};
+use amfi_classic::domain::ClassicGameDomainNamed;
+use amfi_classic::domain::PrisonerId::{Alice, Bob};
+use amfi_classic::SymmetricRewardTableInt;
 use amfi_examples::classic::env::PrisonerEnvState;
 use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
@@ -212,7 +212,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     //let initial_prisoner_state = PrisonerInfoSet::new(reward_table);
 
     let prisoner0 = AgentGenT::new(
-        PrisonerInfoSet::new(Andrzej, reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
+        PrisonerInfoSet::new(Alice, reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
 
 
 
@@ -236,23 +236,23 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerInfoSetWay {}, TrainConfig { gamma: 0.99 });
 
     let mut prisoner1 = AgentGenT::new(
-        PrisonerInfoSet::new(Janusz, reward_table.clone()), comm_prisoner_1, n_policy);
+        PrisonerInfoSet::new(Bob, reward_table.clone()), comm_prisoner_1, n_policy);
 
     if let Some(var_store_file) = args.load_file{
         prisoner1.policy_mut().network_mut().var_store_mut().load(var_store_file)
             .expect("Failed loading vars from file");
     }
     let mut env_coms = HashMap::new();
-    env_coms.insert(Andrzej, comm_env_0);
-    env_coms.insert(Janusz, comm_env_1);
+    env_coms.insert(Alice, comm_env_0);
+    env_coms.insert(Bob, comm_env_1);
     let env = HashMapEnvT::new(env_state, env_coms);
 
 
     let mut model = PrisonerModel{
         env, agent1: prisoner1,
         agent0: prisoner0,
-        agent1_default_state: PrisonerInfoSet::new(Janusz, reward_table),
-        agent0_default_state: PrisonerInfoSet::new(Andrzej, reward_table),
+        agent1_default_state: PrisonerInfoSet::new(Bob, reward_table),
+        agent0_default_state: PrisonerInfoSet::new(Alice, reward_table),
         env_default_state: initial_env_state.clone()
     };
 

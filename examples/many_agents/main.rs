@@ -10,15 +10,15 @@ use amfi::agent::{AgentGenT, AutomaticAgentBothPayoffs, AutomaticAgentRewarded, 
 use amfi::comm::{EnvMpscPort, SyncCommEnv};
 use amfi::env::generic::{BasicEnvironment, HashMapEnv};
 use amfi::env::{AutoEnvironment, AutoEnvironmentWithScores, RoundRobinUniversalEnvironment};
-use amfi_examples::classic::agent::{BoxedClassicInfoSet, HistorylessInfoSet};
-use amfi_examples::classic::common::{AsymmetricRewardTableInt, SymmetricRewardTable};
-use amfi_examples::classic::domain::{ClassicAction, ClassicGameDomainNumbered, IntReward};
-use amfi_examples::classic::policy::ClassicPureStrategy;
-use amfi_examples::pairing::{PairingState, AgentNum};
+use amfi_classic::policy::ClassicPureStrategy;
 use amfi::agent::AgentWithId;
 use amfi::agent::InternalRewardedAgent;
 use amfi::agent::EnvRewardedAgent;
 use amfi::agent::TracingAgent;
+use amfi_classic::domain::{ClassicAction, ClassicGameDomainNumbered};
+use amfi_classic::env::PairingState;
+use amfi_classic::{AsymmetricRewardTableInt, SymmetricRewardTable};
+use amfi_classic::agent::HistorylessInfoSet;
 
 
 #[derive(Parser)]

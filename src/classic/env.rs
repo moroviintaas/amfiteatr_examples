@@ -1,13 +1,12 @@
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use enum_map::Enum;
-use amfi::agent::AgentIdentifier;
 use amfi::env::{EnvStateSequential, EnvironmentStateUniScore};
 use amfi::domain::DomainParameters;
-use crate::classic::common::{Side, SymmetricRewardTableInt};
-use crate::classic::domain::{PRISONERS, ClassicAction, ClassicGameDomain, ClassicGameError, PrisonerId, EncounterReport, PrisonerMap, ClassicGameDomainNamed, EncounterReportNamed, ClassicGameUpdate};
-use crate::classic::domain::ClassicGameError::{ActionAfterGameOver, ActionOutOfOrder};
-use crate::classic::domain::PrisonerId::{Andrzej, Janusz};
+use amfi_classic::domain::*;
+use amfi_classic::domain::ClassicGameError::{ActionAfterGameOver, ActionOutOfOrder};
+use amfi_classic::domain::PrisonerId::{Bob, Alice};
+use amfi_classic::{Side, SymmetricRewardTableInt};
 
 
 #[derive(Clone, Debug)]
@@ -46,14 +45,14 @@ impl Display for PrisonerEnvState{
                 PrisonerAction::Betray => write!(f, "-B ")?,
                 PrisonerAction::Cover => write!(f, "-C ")?
             };*/
-            write!(f, "{:#}-{:#} ", p[Andrzej], p[Janusz])?;
+            write!(f, "{:#}-{:#} ", p[Bob], p[Alice])?;
         }
         write!(f, " | ")?;
-        match self.last_round_actions[Andrzej]{
+        match self.last_round_actions[Bob]{
             None => write!(f, "N-")?,
             Some(s) => write!(f, "{:#}-", s)?
         };
-        match self.last_round_actions[Janusz]{
+        match self.last_round_actions[Alice]{
             None => write!(f, "N")?,
             Some(s) => write!(f, "{:#}", s)?
         };
@@ -110,12 +109,12 @@ impl EnvStateSequential<ClassicGameDomainNamed> for PrisonerEnvState{
 
         //let a0 = self.last_round_actions[Andrzej].unwrap();
         //let a1 = self.last_round_actions[Janusz].unwrap();
-        let a0 = self.last_round_actions[Andrzej].unwrap();
-        let a1 = self.last_round_actions[Janusz].unwrap();
+        let a0 = self.last_round_actions[Bob].unwrap();
+        let a1 = self.last_round_actions[Alice].unwrap();
         let action_entry = PrisonerMap::new(a0, a1);
         self.previous_actions.push(action_entry);
-        self.last_round_actions[Andrzej] = None;
-        self.last_round_actions[Janusz] = None;
+        self.last_round_actions[Bob] = None;
+        self.last_round_actions[Alice] = None;
         /*
         let updates = vec![
             (Andrzej, EncounterReport {

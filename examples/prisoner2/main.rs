@@ -7,13 +7,13 @@ use amfi::comm::SyncCommEnv;
 use amfi::env::generic::HashMapEnvT;
 use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment, TracingEnv};
 use amfi::error::AmfiError;
-use amfi_examples::classic::agent::{Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
-use amfi_examples::classic::common::SymmetricRewardTableInt;
-use amfi_examples::classic::domain::ClassicAction::Defect;
-use amfi_examples::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNamed};
-use amfi_examples::classic::domain::PrisonerId::{Andrzej, Janusz};
+use amfi_classic::agent::{Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
+use amfi_classic::domain::ClassicAction::Defect;
+use amfi_classic::domain::{ClassicAction, ClassicGameDomainNamed};
+use amfi_classic::domain::PrisonerId::{Alice, Bob};
+use amfi_classic::policy::ClassicPureStrategy;
+use amfi_classic::SymmetricRewardTableInt;
 use amfi_examples::classic::env::PrisonerEnvState;
-use amfi_examples::classic::policy::ClassicPureStrategy;
 
 
 pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Result<(), fern::InitError> {
@@ -58,14 +58,14 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
 
     let mut prisoner0 = AgentGenT::new(
-        PrisonerInfoSet::new(Andrzej, reward_table.clone()), comm_prisoner_0, ClassicPureStrategy::new(ClassicAction::Cooperate));
+        PrisonerInfoSet::new(Alice, reward_table.clone()), comm_prisoner_0, ClassicPureStrategy::new(ClassicAction::Cooperate));
 
     let mut prisoner1 = AgentGenT::new(
-        PrisonerInfoSet::new(Janusz, reward_table.clone()), comm_prisoner_1, Forgive1Policy{});
+        PrisonerInfoSet::new(Bob, reward_table.clone()), comm_prisoner_1, Forgive1Policy{});
 
     let mut env_coms = HashMap::new();
-    env_coms.insert(Andrzej, comm_env_0);
-    env_coms.insert(Janusz, comm_env_1);
+    env_coms.insert(Alice, comm_env_0);
+    env_coms.insert(Bob, comm_env_1);
 
     let mut env = HashMapEnvT::new(env_state, env_coms);
 

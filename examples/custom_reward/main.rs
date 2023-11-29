@@ -5,22 +5,31 @@ use std::sync::{Arc, Mutex};
 use log::{debug, info, LevelFilter};
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use amfi_examples::classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr, PrisonerInfoSet, PrisonerInfoSetWay};
-use amfi_examples::classic::common::{SymmetricRewardTable, SymmetricRewardTableInt};
-use amfi_examples::classic::domain::{ClassicAction, ClassicGameDomain, ClassicGameDomainNumbered, UsizeAgentId};
-use amfi_examples::pairing::{AgentNum, PairingState};
 use amfi_rl::tensor_repr::{ConvertToTensor, WayToTensor};
 use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
-use clap::Parser;
+use clap::{Parser, ValueEnum};
 use amfi::agent::{AgentGenT, AutomaticAgentRewarded, EnvRewardedAgent, MultiEpisodeAgent, PolicyAgent, ReseedAgent, TracingAgent};
 use amfi::comm::EnvMpscPort;
 use amfi::domain::Renew;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi::env::generic::{BasicEnvironment, TracingEnvironment};
 use amfi::error::AmfiError;
-use amfi_examples::classic::policy::ClassicPureStrategy;
+use amfi_classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr};
+use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered, UsizeAgentId};
+use amfi_classic::domain::ClassicAction::Defect;
+use amfi_classic::env::PairingState;
+use amfi_classic::policy::ClassicPureStrategy;
+use amfi_classic::SymmetricRewardTableInt;
 use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
+
+
+#[derive(ValueEnum, Debug, Clone)]
+pub enum SecondPolicy{
+    Std,
+    MinDefects,
+    StdMinDefects,
+}
 
 #[derive(Parser)]
 #[command(author, version, about, long_about = None)]
@@ -48,7 +57,10 @@ pub struct EducatorOptions{
     pub batch_size: usize,
 
     #[arg(short = 'n', long = "rounds", default_value = "100")]
-    pub number_of_rounds: usize
+    pub number_of_rounds: usize,
+
+    #[arg(short = 'p', long = "policy", default_value = "standard")]
+    pub policy: SecondPolicy,
 
 
     //#[arg(short = 'r', long = "reward", default_value = "env")]
@@ -114,7 +126,7 @@ pub fn run_game(
 
 }
 
-fn main() -> Result<(), AmfiError<Domain>>{
+fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
     let args = EducatorOptions::parse();
     setup_logger(&args).unwrap();
@@ -170,7 +182,7 @@ fn main() -> Result<(), AmfiError<Domain>>{
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = ActorCriticPolicy::new(net0, opt0, tensor_repr, TrainConfig {gamma: 0.99});
     let state0 = OwnHistoryInfoSet::new(0, reward_table.into());
-    let mut normal_agent = AgentGenT::new(state0, comm0, normal_policy);
+    let mut agent_0 = AgentGenT::new(state0, comm0, normal_policy);
 
 
     let state1 = OwnHistoryInfoSet::new(1, reward_table.into());
@@ -179,16 +191,16 @@ fn main() -> Result<(), AmfiError<Domain>>{
     let net1 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
     let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
     let policy1 = ActorCriticPolicy::new(net1, opt1, tensor_repr, TrainConfig {gamma: 0.99});
-    let mut test_agent = AgentGenT::new(state1, comm1, policy1);
+    let mut agent_1 = AgentGenT::new(state1, comm1, policy1);
 
 
     //evaluate on start
     let mut scores = [Vec::new(), Vec::new()];
     for i in 0..100{
         debug!("Plaing round: {i:} of initial simulation");
-        run_game(&mut environment, &mut normal_agent, &mut test_agent)?;
-        scores[0].push(normal_agent.current_universal_score());
-        scores[1].push(test_agent.current_universal_score());
+        run_game(&mut environment, &mut agent_0, &mut agent_1)?;
+        scores[0].push(agent_0.current_universal_score());
+        scores[1].push(agent_1.current_universal_score());
 
 
     }
@@ -198,32 +210,57 @@ fn main() -> Result<(), AmfiError<Domain>>{
 
 
     for e in 0..args.epochs{
-        normal_agent.clear_episodes();
-        test_agent.clear_episodes();
+        agent_0.clear_episodes();
+        agent_1.clear_episodes();
         info!("Starting epoch {e:}");
         for g in 0..args.batch_size{
-            run_game(&mut environment, &mut normal_agent, &mut test_agent)?;
+            run_game(&mut environment, &mut agent_0, &mut agent_1)?;
         }
-        let trajectories_0 = normal_agent.take_episodes();
-        let trajectories_1 = test_agent.take_episodes();
-        normal_agent.policy_mut().train_on_trajectories_env_reward(&trajectories_0[..])?;
-        test_agent.policy_mut().train_on_trajectories_env_reward(&trajectories_1[..])?;
+        let trajectories_0 = agent_0.take_episodes();
+        let trajectories_1 = agent_1.take_episodes();
+        agent_0.policy_mut().train_on_trajectories_env_reward(&trajectories_0[..])?;
+        match args.policy{
+            SecondPolicy::Std => agent_1.policy_mut().train_on_trajectories_env_reward(&trajectories_1[..]),
+            SecondPolicy::MinDefects => {
+                agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
+                    //let own_defects = step.step_info_set().count_actions_self(Defect) as i64;
+                    let other_defect = step.step_info_set().count_actions_other(Defect) as f32;
+                    let payoff = vec![-other_defect];
+                    Tensor::from_slice(&payoff[..])
+                    })
+                },
+
+            SecondPolicy::StdMinDefects => {
+                agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
+                //let own_defects = step.step_info_set().count_actions_self(Defect) as i64;
+                let other_defect = step.step_info_set().count_actions_other(Defect) as f32;
+                let payoff = vec![step.step_universal_reward() as f32 - (10.0 * other_defect)];
+                Tensor::from_slice(&payoff[..])
+                })
+            },
+
+
+
+        }?;
+
 
         let mut scores = [Vec::new(), Vec::new()];
         for i in 0..100{
             debug!("Plaing round: {i:} of initial simulation");
-            run_game(&mut environment, &mut normal_agent, &mut test_agent)?;
-            scores[0].push(normal_agent.current_universal_score());
-            scores[1].push(test_agent.current_universal_score());
+            run_game(&mut environment, &mut agent_0, &mut agent_1)?;
+            scores[0].push(agent_0.current_universal_score());
+            scores[1].push(agent_1.current_universal_score());
 
         }
+
         let avg = [scores[0].iter().sum::<i32>() as f64 /(scores[0].len() as f64),
             scores[1].iter().sum::<i32>() as f64/(scores[1].len() as f64)];
-        info!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
+        debug!("Score sums: {scores:?}, of size: ({}, {}).", scores[0].len(), scores[1].len());
+        info!("Average scores: 0: {}\t1: {}", avg[0], avg[1]);
     }
 
-    run_game(&mut environment, &mut normal_agent, &mut test_agent)?;
-    println!("{}", normal_agent.take_episodes().last().unwrap().list().last().unwrap());
+    run_game(&mut environment, &mut agent_0, &mut agent_1)?;
+    println!("{}", agent_0.take_episodes().last().unwrap().list().last().unwrap());
 
 
 

@@ -1,16 +1,9 @@
-mod prisoner;
-mod historyless;
-mod own_history;
-
-
-use std::fmt::{Debug, Formatter, Pointer};
-use amfi::agent::{AgentIdentifier, InformationSet, PresentPossibleActions, ScoringInformationSet};
+use std::fmt::Debug;
+use amfi::agent::{InformationSet,
+                  PresentPossibleActions,
+                  ScoringInformationSet};
 use amfi::domain::DomainParameters;
-pub use prisoner::*;
-pub use historyless::*;
-use crate::classic::domain::{ClassicAction, ClassicGameDomainNumbered, IntReward};
-use crate::pairing::AgentNum;
-pub use own_history::*;
+use amfi_classic::domain::{ClassicAction, ClassicGameDomainNumbered, IntReward};
 
 
 #[derive(Debug)]

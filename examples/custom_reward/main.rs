@@ -1,6 +1,9 @@
+mod options;
+mod plots;
+
 use std::{default, thread};
 use std::marker::PhantomData;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex};
 use log::{debug, info, LevelFilter};
 use tch::{Device, nn, Tensor};
@@ -22,51 +25,10 @@ use amfi_classic::policy::ClassicPureStrategy;
 use amfi_classic::SymmetricRewardTableInt;
 use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
+use crate::options::EducatorOptions;
+use crate::options::SecondPolicy;
+use crate::plots::{plot_2payoffs, plot_payoffs};
 
-
-#[derive(ValueEnum, Debug, Clone)]
-pub enum SecondPolicy{
-    Std,
-    MinDefects,
-    StdMinDefects,
-}
-
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-pub struct EducatorOptions{
-
-    #[arg(short = 'v', long = "log_level", value_enum, default_value = "info")]
-    pub log_level: LevelFilter,
-
-    #[arg(short = 'a', long = "log_level_amfi", value_enum, default_value = "OFF")]
-    pub log_level_amfi: LevelFilter,
-
-    #[arg(short = 'o', long = "logfile")]
-    pub log_file: Option<PathBuf>,
-
-    #[arg(short = 's', long = "save")]
-    pub save_file: Option<PathBuf>,
-
-    #[arg(short = 'l', long = "load")]
-    pub load_file: Option<PathBuf>,
-
-    #[arg(short = 'e', long = "epochs", default_value = "1000")]
-    pub epochs: usize,
-
-    #[arg(short = 'b', long = "batch", default_value = "64")]
-    pub batch_size: usize,
-
-    #[arg(short = 'n', long = "rounds", default_value = "100")]
-    pub number_of_rounds: usize,
-
-    #[arg(short = 'p', long = "policy", default_value = "standard")]
-    pub policy: SecondPolicy,
-
-
-    //#[arg(short = 'r', long = "reward", default_value = "env")]
-    //pub reward_source: RewardSource,
-
-}
 
 pub struct ModelElements<ID: UsizeAgentId, Seed>{
     pub environment: Arc<Mutex<dyn AutoEnvironmentWithScores<ClassicGameDomain<ID>>>>,
@@ -88,8 +50,6 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
         })
         .level(options.log_level)
         .level_for("amfi_examples", options.log_level)
-        //.level_for("pairing", options.log_level)
-        //.level_for("classic", options.log_level);
         .level_for("amfi", options.log_level_amfi);
 
         match &options.log_file{
@@ -101,6 +61,8 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
     Ok(())
 }
 type Domain = ClassicGameDomain<AgentNum>;
+
+
 
 pub fn run_game(
     env: &mut (impl AutoEnvironmentWithScores<Domain> + Send + ReseedEnvironment<Domain, ()>),
@@ -137,8 +99,12 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let tensor_repr = OwnHistoryTensorRepr::new(args.number_of_rounds);
 
     let input_size = tensor_repr.desired_shape().iter().product();
-    let normal_var_store = VarStore::new(device);
-    let custom_var_store = VarStore::new(device);
+
+    let mut payoffs_0 = Vec::with_capacity(args.epochs + 1);
+    let mut payoffs_1 = Vec::with_capacity(args.epochs + 1);
+    //let mut opti_payoffs_1 = Vec::with_capacity(args.epochs + 1);
+
+
 
     let mut env_adapter = EnvMpscPort::new();
     let comm0 = env_adapter.register_agent(0).unwrap();
@@ -164,16 +130,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
 
-    //let normal_policy =
 
 
-    /*
-    let net = A2CNet::new()
-    let net  = nn::seq()
-        .add(nn::linear(path / "input"))
-
-     */
-    //let state_template = PairingState::<AgentNum>::new_even(2, 10, reward_table.into()).unwrap();
     let env_state_template = PairingState::new_even(number_of_players, args.number_of_rounds, reward_table.into()).unwrap();
     let mut environment = TracingEnvironment::new(env_state_template.clone(), env_adapter);
 
@@ -207,6 +165,9 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let avg = [scores[0].iter().sum::<i32>()/(scores[0].len() as i32),
             scores[1].iter().sum::<i32>()/(scores[1].len() as i32)];
         info!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
+
+    payoffs_0.push(avg[0] as f32);
+    payoffs_1.push(avg[1] as f32);
 
 
     for e in 0..args.epochs{
@@ -257,6 +218,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
             scores[1].iter().sum::<i32>() as f64/(scores[1].len() as f64)];
         debug!("Score sums: {scores:?}, of size: ({}, {}).", scores[0].len(), scores[1].len());
         info!("Average scores: 0: {}\t1: {}", avg[0], avg[1]);
+        payoffs_0.push(avg[0] as f32);
+        payoffs_1.push(avg[1] as f32);
     }
 
     run_game(&mut environment, &mut agent_0, &mut agent_1)?;
@@ -267,6 +230,11 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     println!("{}", environment.trajectory().list().last().unwrap());
 
     println!("Scores: 0: {},\t1: {}", environment.actual_score_of_player(&0), environment.actual_score_of_player(&1));
+
+
+    plot_payoffs(Path::new(format!("agent_0-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &payoffs_0[..]).unwrap();
+    plot_payoffs(Path::new(format!("agent_1-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &payoffs_1[..]).unwrap();
+    plot_2payoffs(Path::new(format!("payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &payoffs_0[..], &payoffs_1[..]).unwrap();
 
 
     Ok(())

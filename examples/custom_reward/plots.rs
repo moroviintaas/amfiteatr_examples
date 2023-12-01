@@ -1,20 +1,29 @@
 use std::cmp::Ordering;
 use std::path::Path;
+use log::{debug, info};
 use plotters::prelude::*;
 
-pub fn plot_payoffs(file: &Path, payoffs: &[f32]) -> Result<(), Box<dyn std::error::Error>>{
+pub struct Series{
+    pub data: Vec<f32>,
+    pub description: String,
+    pub color: RGBColor,
+}
+
+pub fn plot_payoffs(file: &Path, series_0: &Series) -> Result<(), Box<dyn std::error::Error>>{
     let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
 
-    let min = match payoffs.iter().min_by(|a, b |{
+
+    let min = match series_0.data.iter().min_by(|a, b |{
         a.partial_cmp(b).unwrap_or(Ordering::Equal)
     }){
         None => 0.0,
         Some(n) if n < &0.0 => *n,
         Some(_) => 0.0f32
+        //Some(n) => n
     };
 
-    let max = match payoffs.iter().max_by(|a, b |{
+    let max = match series_0.data.iter().max_by(|a, b |{
         a.partial_cmp(b).unwrap_or(Ordering::Equal)
     }){
         None => 0.0,
@@ -22,21 +31,23 @@ pub fn plot_payoffs(file: &Path, payoffs: &[f32]) -> Result<(), Box<dyn std::err
         Some(_) => 0.0f32
     };
 
+    info!("Plotting globals: min = {}; max = {}", min, max);
+
     let mut chart = ChartBuilder::on(&root)
         .caption("payoffs", ("sans-serif", 50).into_font())
         .margin(5)
         .x_label_area_size(30)
         .y_label_area_size(30)
-        .build_cartesian_2d(0.0..payoffs.len() as f32, min..max)?;
+        .build_cartesian_2d(0.0..series_0.data.len() as f32, min..max)?;
 
     chart.configure_mesh().draw()?;
 
     chart
         .draw_series(LineSeries::new(
-            (0..payoffs.len()).map(|x| (x as f32, payoffs[x])),
+            (0..series_0.data.len()).map(|x| (x as f32, series_0.data[x])),
             &RED,
         ))?
-        .label("payoffs")
+        .label(series_0.description.as_str())
         .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
 
     chart
@@ -50,21 +61,43 @@ pub fn plot_payoffs(file: &Path, payoffs: &[f32]) -> Result<(), Box<dyn std::err
     Ok(())
 }
 
-pub fn plot_2payoffs(file: &Path, payoffs_0: &[f32], payoffs_1: &[f32]) -> Result<(), Box<dyn std::error::Error>>{
+pub fn plot_many_payoffs(file: &Path, series: &[Series]) -> Result<(), Box<dyn std::error::Error>>{
     let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
 
-    let min = match payoffs_0.iter().chain(payoffs_1.iter()).min_by(|a, b |{
-        a.partial_cmp(b).unwrap_or(Ordering::Equal)
+    let mut mins = Vec::with_capacity(series.len());
+    for s in series{
+        let min =  match s.data.iter().min_by(|a, b |{
+            a.partial_cmp(b).unwrap_or(Ordering::Equal)
+        }){
+            None => 0.0,
+            Some(n) if n < &0.0 => *n,
+            Some(_) => 0.0f32
+        };
+        mins.push(min)
+    }
+    let global_min = match mins.iter().min_by(|a, b |{
+            a.partial_cmp(b).unwrap_or(Ordering::Equal)
     }){
         None => 0.0,
         Some(n) if n < &0.0 => *n,
         Some(_) => 0.0f32
     };
 
-
-    let max = match payoffs_0.iter().chain(payoffs_1.iter()).max_by(|a, b |{
-        a.partial_cmp(b).unwrap_or(Ordering::Equal)
+    let mut maxes = Vec::with_capacity(series.len());
+    for s in series{
+        let max =  match s.data.iter().max_by(|a, b |{
+            a.partial_cmp(b).unwrap_or(Ordering::Equal)
+        }){
+            None => 0.0,
+            Some(n) if n > &0.0 => *n,
+            Some(_) => 0.0f32
+        };
+        debug!("Maximal value in series: {} is {}", s.description, max);
+        maxes.push(max)
+    }
+    let global_max = match maxes.iter().max_by(|a, b |{
+            a.partial_cmp(b).unwrap_or(Ordering::Equal)
     }){
         None => 0.0,
         Some(n) if n > &0.0 => *n,
@@ -72,15 +105,41 @@ pub fn plot_2payoffs(file: &Path, payoffs_0: &[f32], payoffs_1: &[f32]) -> Resul
     };
 
 
+    debug!("Plotting globals: min = {}; max = {}", global_min, global_max);
+
+    /*
+    let max = match series_0.data..iter().chain(series_1.data..iter()).max_by(|a, b |{
+        a.partial_cmp(b).unwrap_or(Ordering::Equal)
+    }){
+        None => 0.0,
+        Some(n) if n > &0.0 => *n,
+        Some(_) => 0.0f32
+    };
+
+     */
+
+
     let mut chart = ChartBuilder::on(&root)
         .caption("payoffs", ("sans-serif", 50).into_font())
         .margin(5)
         .x_label_area_size(30)
         .y_label_area_size(30)
-        .build_cartesian_2d(0.0..payoffs_0.len() as f32, min..max)?;
+        .build_cartesian_2d(0.0..series[0].data.len() as f32, global_min..global_max)?;
 
     chart.configure_mesh().draw()?;
 
+
+    for s in series{
+        chart
+            .draw_series(LineSeries::new(
+                (0..s.data.len()).map(|x| (x as f32, s.data[x])),
+                &s.color,
+            ))?
+            .label(s.description.as_str())
+            .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &s.color));
+
+    }
+    /*
     chart
         .draw_series(LineSeries::new(
             (0..payoffs_0.len()).map(|x| (x as f32, payoffs_0[x])),
@@ -97,6 +156,8 @@ pub fn plot_2payoffs(file: &Path, payoffs_0: &[f32], payoffs_1: &[f32]) -> Resul
         ))?
         .label("agent 1")
         .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
+
+     */
 
     chart
         .configure_series_labels()

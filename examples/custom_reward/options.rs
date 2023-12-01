@@ -37,8 +37,11 @@ pub struct EducatorOptions{
     #[arg(short = 'n', long = "rounds", default_value = "10")]
     pub number_of_rounds: usize,
 
-    #[arg(short = 'p', long = "policy", default_value = "standard")]
+    #[arg(short = 'p', long = "policy", default_value = "std")]
     pub policy: SecondPolicy,
+
+    #[arg(long = "reward_bias_scale", default_value = "0")]
+    pub reward_bias_scale: f32
 
 
     //#[arg(short = 'r', long = "reward", default_value = "env")]

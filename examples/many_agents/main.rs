@@ -1,15 +1,13 @@
-use std::collections::HashMap;
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
 use log::LevelFilter;
 use tch::Device;
-use amfi::domain::RewardSource;
 use clap::Parser;
-use amfi::agent::{AgentGenT, AutomaticAgentBothPayoffs, AutomaticAgentRewarded, ScoringInformationSet, TracingAutomaticAgent};
-use amfi::comm::{EnvMpscPort, SyncCommEnv};
-use amfi::env::generic::{BasicEnvironment, HashMapEnv};
-use amfi::env::{AutoEnvironment, AutoEnvironmentWithScores, RoundRobinUniversalEnvironment};
+use amfi::agent::*;
+use amfi::comm::{EnvMpscPort};
+use amfi::env::generic::BasicEnvironment;
+use amfi::env::AutoEnvironmentWithScores;
 use amfi_classic::policy::ClassicPureStrategy;
 use amfi::agent::AgentWithId;
 use amfi::agent::InternalRewardedAgent;
@@ -82,7 +80,7 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
 fn main(){
 
     let args = ReplicatorOptions::parse();
-    let device = Device::Cpu;
+    //let device = Device::Cpu;
     type Domain = ClassicGameDomainNumbered;
 
     let number_of_players = 32;
@@ -90,7 +88,7 @@ fn main(){
         SymmetricRewardTable::new(2, 1, 4, 0).into();
     let env_state_template = PairingState::new_even(number_of_players, args.number_of_rounds, reward_table).unwrap();
 
-    let mut comms = HashMap::<u32, SyncCommEnv<ClassicGameDomainNumbered>>::with_capacity(number_of_players);
+    //let mut comms = HashMap::<u32, SyncCommEnv<ClassicGameDomainNumbered>>::with_capacity(number_of_players);
 
     let mut agents = Vec::with_capacity(number_of_players);
 
@@ -125,8 +123,8 @@ fn main(){
             environment.run_with_scores().unwrap();
         });
 
-        for mut a in &agents{
-            let mut agent = a.clone();
+        for a in &agents{
+            let agent = a.clone();
             s.spawn(move ||{
 
                 agent.lock().unwrap().run_rewarded().unwrap();

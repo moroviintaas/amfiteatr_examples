@@ -25,6 +25,7 @@ use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
+use crate::options::SecondPolicy::StdMinDefects;
 use crate::plots::{plot_many_payoffs, Series};
 
 
@@ -203,9 +204,9 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
                     //let custom_reward = step.step_subjective_reward().count_other_actions(Cooperate);
                     let custom_reward = reward_f(step.step_subjective_reward());
                     let v_custom_reward = vec![custom_reward];
-                    trace!("Calculating custom reward on info set: {}, with agent reward: {:?}.",
-                        step.step_info_set(), step.step_subjective_reward());
-                    trace!("Custom reward calculated: {}", &custom_reward);
+                    //trace!("Calculating custom reward on info set: {}, with agent reward: {:?}.",
+                    //    step.step_info_set(), step.step_subjective_reward());
+                    //trace!("Custom reward calculated: {}", &custom_reward);
                     Tensor::from_slice(&v_custom_reward[..])
                 })
             },
@@ -216,9 +217,9 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
                     //let custom_reward = step.step_subjective_reward().f_combine_table_with_other_coop(100.0);
                     let custom_reward = reward_f(step.step_subjective_reward());
                     let v_custom_reward = vec![custom_reward];
-                    trace!("Calculating custom reward on info set: {}, with agent reward: {:?}.",
-                        step.step_info_set(), step.step_subjective_reward());
-                    trace!("Custom reward calculated: {}", &custom_reward);
+                    //trace!("Calculating custom reward on info set: {}, with agent reward: {:?}.",
+                    //    step.step_info_set(), step.step_subjective_reward());
+                    //trace!("Custom reward calculated: {}", &custom_reward);
                     Tensor::from_slice(&v_custom_reward[..])
                 })
             },
@@ -278,7 +279,14 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         description: "Agent 1 - custom reward".to_string(),
         color: colors::GREEN,
     };
-    plot_many_payoffs(Path::new(format!("payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &[agent0_data, agent1_data, agent1_custom_data]).unwrap();
+
+    let s_policy = match args.policy{
+        SecondPolicy::StdMinDefects => {
+            format!("{:?}-{:?}", StdMinDefects, args.reward_bias_scale)
+        },
+        a => format!("{:?}", a)
+    };
+    plot_many_payoffs(Path::new(format!("results/payoffs-{}-{:?}.svg", &s_policy.as_str(), args.number_of_rounds).as_str()), &[agent0_data, agent1_data, agent1_custom_data]).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
     Ok(())

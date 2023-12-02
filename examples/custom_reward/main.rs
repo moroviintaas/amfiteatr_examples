@@ -104,7 +104,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         SecondPolicy::Std => Box::new(|reward| reward.table_payoff() as f32),
         SecondPolicy::MinDefects => {Box::new(|reward| reward.other_coop_as_reward() as f32)}
         SecondPolicy::StdMinDefects => Box::new(|reward|
-            reward.f_combine_table_with_other_coop(args.reward_bias_scale * args.number_of_rounds as f32))
+            reward.f_combine_table_with_other_coop(args.reward_bias_scale * args.number_of_rounds as f32)),
+        SecondPolicy::StdMinDefectsBoth => {todo!()}
     };
 
     let tensor_repr = OwnHistoryTensorRepr::new(args.number_of_rounds);
@@ -127,12 +128,13 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
     let net_template = NeuralNetTemplate::new(|path|{
         let seq = nn::seq()
-            .add(nn::linear(path / "input", input_size, 256, Default::default()))
-            .add(nn::linear(path / "h1", 256, 256, Default::default()))
-            .add(nn::linear(path / "h2", 256, 256, Default::default()));
+            .add(nn::linear(path / "input", input_size, 512, Default::default()))
+            //.add(nn::linear(path / "h1", 256, 256, Default::default()))
+            .add(nn::linear(path / "hidden", 512, 512, Default::default()))
+            .add_fn(|xs|xs.relu());
             //.add(nn::linear(path / "h2", 512, 512, Default::default()));
-        let actor = nn::linear(path / "al", 256, 2, Default::default());
-        let critic =  nn::linear(path / "ac", 256, 1, Default::default());
+        let actor = nn::linear(path / "al", 512, 2, Default::default());
+        let critic =  nn::linear(path / "ac", 512, 1, Default::default());
         {move |input: &Tensor|{
             let xs = input.to_device(device).apply(&seq);
             TensorA2C{critic: xs.apply(&critic), actor: xs.apply(&actor)}
@@ -224,8 +226,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
                 })
             },
 
-
-
+            _ => {todo!()}
         }?;
 
 
@@ -286,7 +287,12 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         },
         a => format!("{:?}", a)
     };
-    plot_many_payoffs(Path::new(format!("results/payoffs-{}-{:?}.svg", &s_policy.as_str(), args.number_of_rounds).as_str()), &[agent0_data, agent1_data, agent1_custom_data]).unwrap();
+    plot_many_payoffs(Path::new(
+        format!("results/payoffs-{}-{:?}-{}.svg",
+                &s_policy.as_str(),
+                args.number_of_rounds,
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"))
+            .as_str(), ), &[agent0_data, agent1_data, agent1_custom_data]).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
     Ok(())

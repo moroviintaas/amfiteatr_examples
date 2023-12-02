@@ -8,6 +8,7 @@ pub enum SecondPolicy{
     MinDefects,
     StdMinDefects,
     StdMinDefectsBoth,
+    AnswerAfterTwo,
 }
 
 #[derive(Parser)]

@@ -9,11 +9,12 @@ use log::{debug, info, trace};
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
 use amfi_rl::tensor_repr::{WayToTensor};
-use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
+use amfi_rl::torch_net::{A2CNet, NeuralNet, NeuralNetTemplate, TensorA2C};
 use clap::{Parser};
 use plotters::style::colors;
 use amfi::agent::*;
-use amfi::comm::EnvMpscPort;
+use amfi::comm::{EnvMpscPort, SyncCommAgent};
+use amfi::domain::DomainParameters;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi::env::generic::TracingEnvironment;
 use amfi::error::AmfiError;
@@ -23,6 +24,7 @@ use amfi_classic::env::PairingState;
 use amfi_classic::SymmetricRewardTableInt;
 use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
+use amfi_rl::agent::NetworkLearningAgent;
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
 use crate::options::SecondPolicy::StdMinDefects;
@@ -86,6 +88,28 @@ pub fn run_game(
     Ok(())
 
 }
+/*
+pub trait CustomLearningAgent<DP: DomainParameters>:
+    MultiEpisodeAgent<DP> + NetworkLearningAgent<DP> + AutomaticAgentBothPayoffs<DP>{}
+pub trait CustomNotLearningAgent<DP: DomainParameters>:
+    MultiEpisodeAgent<DP> + AutomaticAgentBothPayoffs<DP>{}
+
+impl<DP: DomainParameters, T: MultiEpisodeAgent<DP> + NetworkLearningAgent<DP> + AutomaticAgentBothPayoffs<DP>>
+CustomLearningAgent<DP> for T{}
+
+impl<DP: DomainParameters, T: MultiEpisodeAgent<DP>  + AutomaticAgentBothPayoffs<DP>>
+CustomNotLearningAgent<DP> for T{}
+*/
+pub enum AgentWrap{
+    //Learning(Arc<Mutex<dyn NetworkLearningAgent<InfoSetType=(), Policy=()>>>),
+    //Simple(Arc<Mutex<dyn Au>>)
+}
+type D = ClassicGameDomainNumbered;
+type C = SyncCommAgent<D>;
+type IS = OwnHistoryInfoSet<AgentNum>;
+pub enum CustomAgent{
+    A2C(AgentGenT<D, ActorCriticPolicy<D, IS, OwnHistoryTensorRepr>, C>)
+}
 
 fn payoff_table_and_other_coop(reward: &VerboseReward<i64>, coop_count_scale: f32) -> f32{
     reward.f_combine_table_with_other_coop(coop_count_scale)
@@ -105,7 +129,10 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         SecondPolicy::MinDefects => {Box::new(|reward| reward.other_coop_as_reward() as f32)}
         SecondPolicy::StdMinDefects => Box::new(|reward|
             reward.f_combine_table_with_other_coop(args.reward_bias_scale * args.number_of_rounds as f32)),
-        SecondPolicy::StdMinDefectsBoth => {todo!()}
+        SecondPolicy::StdMinDefectsBoth => Box::new(|reward|{
+            reward.f_combine_table_with_both_coop(args.reward_bias_scale * args.number_of_rounds as f32)
+        }),
+        _ => todo!()
     };
 
     let tensor_repr = OwnHistoryTensorRepr::new(args.number_of_rounds);
@@ -164,6 +191,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let net1 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
     let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
     let policy1 = ActorCriticPolicy::new(net1, opt1, tensor_repr, TrainConfig {gamma: 0.99});
+    //let mut agent_1 = AgentGenT::new(state1, comm1, Arc::new(Mutex::new(policy1)));
     let mut agent_1 = AgentGenT::new(state1, comm1, policy1);
 
 

@@ -15,10 +15,13 @@ use amfi::agent::AgentWithId;
 use amfi::agent::InternalRewardedAgent;
 use amfi::agent::EnvRewardedAgent;
 use amfi::agent::TracingAgent;
-use amfi_classic::domain::{ClassicAction, ClassicGameDomainNumbered};
+use amfi::domain::DomainParameters;
+use amfi_classic::domain::{AgentNum, ClassicAction, ClassicGameDomainNumbered, IntReward};
 use amfi_classic::env::PairingState;
 use amfi_classic::{AsymmetricRewardTableInt, SymmetricRewardTable};
-use amfi_classic::agent::HistorylessInfoSet;
+use amfi_classic::agent::{HistorylessInfoSet, OwnHistoryInfoSet, OwnHistoryTensorRepr, VerboseReward};
+use amfi_rl::actor_critic::ActorCriticPolicy;
+use amfi_rl::agent::RlModelAgent;
 use crate::options::ReplicatorOptions;
 
 
@@ -49,13 +52,17 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
     Ok(())
 }
 type D = ClassicGameDomainNumbered;
+type S = PairingState<<D as DomainParameters>::AgentId>;
+type Pol = ActorCriticPolicy<D, OwnHistoryInfoSet<<D as DomainParameters>::AgentId>, OwnHistoryTensorRepr>;
 
-/*
 struct Model{
-    environment: BasicEnvironment<DP, S, CP>
+    environment: BasicEnvironment<D, S, EnvMpscPort<D>>,
+    //agents: Arc<Mutex<dyn MultiEpisodeAgent<D, (), InfoSetType=()>>>,
+    basic_agents: Arc<Mutex<dyn MultiEpisodeAgent<D, (), InfoSetType=OwnHistoryInfoSet<AgentNum>>>>,
+    learning_agents: Arc<Mutex<dyn RlModelAgent<D, (), OwnHistoryInfoSet<AgentNum>,
+        Policy=Pol,>>>
 }
 
- */
 
 fn main(){
 

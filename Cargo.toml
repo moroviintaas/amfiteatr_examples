@@ -17,6 +17,9 @@ name = "many_agents"
 [[example]]
 name = "custom_reward"
 
+#[[example]]
+#name = "learn_against_policy"
+
 [dependencies]
 
 amfi = {path = "../amfi" }

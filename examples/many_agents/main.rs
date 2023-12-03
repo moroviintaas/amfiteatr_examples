@@ -1,3 +1,5 @@
+mod options;
+
 use std::path::PathBuf;
 use std::sync::{Arc, Mutex};
 use std::thread;
@@ -17,38 +19,8 @@ use amfi_classic::domain::{ClassicAction, ClassicGameDomainNumbered};
 use amfi_classic::env::PairingState;
 use amfi_classic::{AsymmetricRewardTableInt, SymmetricRewardTable};
 use amfi_classic::agent::HistorylessInfoSet;
+use crate::options::ReplicatorOptions;
 
-
-#[derive(Parser)]
-#[command(author, version, about, long_about = None)]
-pub struct ReplicatorOptions{
-
-    #[arg(short = 'v', long = "log_level", value_enum, default_value = "debug")]
-    pub log_level: LevelFilter,
-
-    #[arg(short = 'a', long = "log_level_amfi", value_enum, default_value = "OFF")]
-    pub log_level_amfi: LevelFilter,
-
-    #[arg(short = 'o', long = "logfile")]
-    pub log_file: Option<PathBuf>,
-
-    #[arg(short = 's', long = "save")]
-    pub save_file: Option<PathBuf>,
-
-    #[arg(short = 'l', long = "load")]
-    pub load_file: Option<PathBuf>,
-
-    #[arg(short = 'e', long = "epochs", default_value = "10")]
-    pub epochs: usize,
-    
-    #[arg(short = 'n', long = "rounds", default_value = "32")]
-    pub number_of_rounds: usize
-    
-
-    //#[arg(short = 'r', long = "reward", default_value = "env")]
-    //pub reward_source: RewardSource,
-
-}
 
 pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
@@ -56,7 +28,7 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
         .format(|out, message, record| {
             out.finish(format_args!(
                 "{}[{}][{}] {}",
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                chrono::Local::now().format("[%H:%M:%S]"),
                 record.target(),
                 record.level(),
                 message
@@ -76,6 +48,14 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
         .apply()?;
     Ok(())
 }
+type D = ClassicGameDomainNumbered;
+
+/*
+struct Model{
+    environment: BasicEnvironment<DP, S, CP>
+}
+
+ */
 
 fn main(){
 

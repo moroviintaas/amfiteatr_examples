@@ -107,13 +107,18 @@ pub enum AgentWrap{
 type D = ClassicGameDomainNumbered;
 type C = SyncCommAgent<D>;
 type IS = OwnHistoryInfoSet<AgentNum>;
+/*
 pub enum CustomAgent{
     A2C(AgentGenT<D, ActorCriticPolicy<D, IS, OwnHistoryTensorRepr>, C>)
 }
 
+
+
 fn payoff_table_and_other_coop(reward: &VerboseReward<i64>, coop_count_scale: f32) -> f32{
     reward.f_combine_table_with_other_coop(coop_count_scale)
 }
+
+ */
 
 fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
@@ -132,7 +137,6 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         SecondPolicy::StdMinDefectsBoth => Box::new(|reward|{
             reward.f_combine_table_with_both_coop(args.reward_bias_scale * args.number_of_rounds as f32)
         }),
-        _ => todo!()
     };
 
     let tensor_repr = OwnHistoryTensorRepr::new(args.number_of_rounds);
@@ -157,7 +161,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         let seq = nn::seq()
             .add(nn::linear(path / "input", input_size, 512, Default::default()))
             //.add(nn::linear(path / "h1", 256, 256, Default::default()))
-            .add(nn::linear(path / "hidden", 512, 512, Default::default()))
+            .add(nn::linear(path / "hidden1", 512, 512, Default::default()))
+            .add(nn::linear(path / "hidden2", 512, 512, Default::default()))
             .add_fn(|xs|xs.relu());
             //.add(nn::linear(path / "h2", 512, 512, Default::default()));
         let actor = nn::linear(path / "al", 512, 2, Default::default());

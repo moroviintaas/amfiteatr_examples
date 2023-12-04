@@ -40,7 +40,9 @@ pub fn plot_payoffs(file: &Path, series_0: &Series) -> Result<(), Box<dyn std::e
         .y_label_area_size(30)
         .build_cartesian_2d(0.0..series_0.data.len() as f32, min..max)?;
 
-    chart.configure_mesh().draw()?;
+    chart.configure_mesh()
+        .disable_mesh()
+        .draw()?;
 
     chart
         .draw_series(LineSeries::new(

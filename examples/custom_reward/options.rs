@@ -43,7 +43,19 @@ pub struct EducatorOptions{
     pub policy: SecondPolicy,
 
     #[arg(long = "reward_bias_scale", default_value = "0")]
-    pub reward_bias_scale: f32
+    pub reward_bias_scale: f32,
+
+    #[arg(long = "defect-defect", default_value = "3")]
+    pub defect_versus_defect: i64,
+
+    #[arg(long = "coop-defect", default_value = "1")]
+    pub coop_versus_defect: i64,
+
+    #[arg(long = "defect-coop", default_value = "10")]
+    pub defect_versus_coop: i64,
+
+    #[arg(long = "coop-coop", default_value = "5")]
+    pub coop_versus_coop: i64,
 
 
     //#[arg(short = 'r', long = "reward", default_value = "env")]

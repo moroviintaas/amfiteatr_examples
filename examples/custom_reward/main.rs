@@ -151,8 +151,11 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let comm0 = env_adapter.register_agent(0).unwrap();
     let comm1 = env_adapter.register_agent(1).unwrap();
 
-    let reward_table = SymmetricRewardTableInt::new(5, 1, 10, 3);
-
+    let reward_table = SymmetricRewardTableInt::new(
+        args.coop_versus_coop,
+        args.coop_versus_defect,
+        args.defect_versus_coop,
+        args.defect_versus_defect);
 
     let net_template = NeuralNetTemplate::new(|path|{
         let seq = nn::seq()

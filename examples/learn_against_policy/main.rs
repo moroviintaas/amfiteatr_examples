@@ -17,8 +17,9 @@ use amfi::comm::{EnvMpscPort, SyncCommAgent};
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi::env::generic::TracingEnvironment;
 use amfi::error::AmfiError;
-use amfi_classic::agent::{OwnHistoryInfoSet, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr, SwitchAfterTwo};
+use amfi_classic::agent::{FibonacciForgiveStrategy, OwnHistoryInfoSet, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr, SwitchAfterTwo};
 use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered,  UsizeAgentId};
+use amfi_classic::domain::ClassicAction::{Cooperate, Defect};
 use amfi_classic::env::PairingState;
 use amfi_classic::policy::ClassicMixedStrategy;
 use amfi_classic::SymmetricRewardTableInt;
@@ -128,7 +129,9 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
     let mut payoffs_0 = Vec::with_capacity(args.epochs + 1);
     let mut payoffs_1 = Vec::with_capacity(args.epochs + 1);
-    let mut custom_payoffs_1 = Vec::with_capacity(args.epochs + 1);
+    let mut agent_1_coops = Vec::with_capacity(args.epochs + 1);
+    let mut agent_1_defects = Vec::with_capacity(args.epochs + 1);
+    //let mut custom_payoffs_1 = Vec::with_capacity(args.epochs + 1);
     //let mut opti_payoffs_1 = Vec::with_capacity(args.epochs + 1);
 
 
@@ -137,7 +140,11 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let comm0 = env_adapter.register_agent(0).unwrap();
     let comm1 = env_adapter.register_agent(1).unwrap();
 
-    let reward_table = SymmetricRewardTableInt::new(5, 1, 10, 3);
+    let reward_table = SymmetricRewardTableInt::new(
+        args.coop_versus_coop,
+        args.coop_versus_defect,
+        args.defect_versus_coop,
+        args.defect_versus_defect);
 
 
     let net_template = NeuralNetTemplate::new(|path|{
@@ -174,42 +181,45 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
     let state1 = OwnHistoryInfoSet::new(1, reward_table.into());
-    //let test_policy = ClassicPureStrategy::new(ClassicAction::Defect);
 
-    let net1 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
-    let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
-    //let policy1 = ActorCriticPolicy::new(net1, opt1, tensor_repr, TrainConfig {gamma: 0.99});
-    //let mut agent_1 = AgentGenT::new(state1, comm1, Arc::new(Mutex::new(policy1)));
-
-    //AgentGenT::new(state1, comm1, policy1);
     let mut agent_1: Box<dyn ModelAgent<D, (), OwnHistoryInfoSetNumbered, >> = match args.policy{
         SecondPolicy::Mixed => {
             Box::new(AgentGenT::new(state1, comm1, ClassicMixedStrategy::new(args.defect_proba as f64)))
         }
         SecondPolicy::SwitchTwo => {Box::new(AgentGenT::new(state1, comm1, SwitchAfterTwo{}))}
+        SecondPolicy::FibonacciForgive => {Box::new(AgentGenT::new(state1, comm1, FibonacciForgiveStrategy{}))}
     };
 
 
     //evaluate on start
-    let mut scores = [Vec::new(), Vec::new(), Vec::new()];
+    let mut scores = [Vec::new(), Vec::new()];
+    let mut actions = [Vec::new(), Vec::new()];
     for i in 0..100{
         debug!("Plaing round: {i:} of initial simulation");
         //let mut agent_1_guard = agent_1.lock().unwrap();
         run_game(&mut environment, &mut agent_0, &mut agent_1)?;
         scores[0].push(agent_0.current_universal_score()) ;
         scores[1].push(agent_1.current_universal_score());
+        actions[0].push(agent_0.info_set().count_actions_self_calculate(Cooperate));
+        actions[1].push(agent_0.info_set().count_actions_self_calculate(Defect));
         //scores[2].push(reward_f(agent_1.current_subjective_score()) as i64);
 
 
     }
     let avg = [scores[0].iter().sum::<i64>()/(scores[0].len() as i64),
-            scores[1].iter().sum::<i64>()/(scores[1].len() as i64),
-            scores[2].iter().sum::<i64>()/(scores[2].len() as i64)];
+        scores[1].iter().sum::<i64>()/(scores[1].len() as i64),
+            //scores[2].iter().sum::<i64>()/(scores[2].len() as i64)
+    ];
+    let avg_a = [actions[0].iter().map(|n| *n as i64).sum::<i64>() as f64 /(actions[0].len() as f64),
+        actions[1].iter().map(|n| *n as i64).sum::<i64>() as f64/(actions[1].len() as f64),
+    ];
         info!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
 
     payoffs_0.push(avg[0] as f32);
     payoffs_1.push(avg[1] as f32);
-    custom_payoffs_1.push(avg[2] as f32);
+    agent_1_coops.push(avg_a[0] as f32);
+    agent_1_defects.push(avg_a[1] as f32);
+    //custom_payoffs_1.push(avg[2] as f32);
 
 
     for e in 0..args.epochs{
@@ -226,28 +236,35 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
         let mut scores = [Vec::new(), Vec::new(), Vec::new()];
+        let mut actions = [Vec::new(), Vec::new()];
         for i in 0..100{
             debug!("Plaing round: {i:} of initial simulation");
             run_game(&mut environment, &mut agent_0, &mut agent_1)?;
             scores[0].push(agent_0.current_universal_score());
             scores[1].push(agent_1.current_universal_score());
+            actions[0].push(agent_0.info_set().count_actions_self_calculate(Cooperate));
+            actions[1].push(agent_0.info_set().count_actions_self_calculate(Defect));
             //scores[2].push(reward_f(agent_1.current_subjective_score()) as i64);
 
         }
 
         let avg = [scores[0].iter().sum::<i64>() as f64 /(scores[0].len() as f64),
             scores[1].iter().sum::<i64>() as f64/(scores[1].len() as f64),
-            scores[2].iter().sum::<i64>() as f64/(scores[2].len() as f64),
+        ];
+        let avg_a = [actions[0].iter().map(|n| *n as i64).sum::<i64>() as f64 /(actions[0].len() as f64),
+            actions[1].iter().map(|n| *n as i64).sum::<i64>() as f64/(actions[1].len() as f64),
         ];
         debug!("Score sums: {scores:?}, of size: ({}, {}).", scores[0].len(), scores[1].len());
         info!("Average scores: 0: {}\t1: {}", avg[0], avg[1]);
         payoffs_0.push(avg[0] as f32);
         payoffs_1.push(avg[1] as f32);
-        custom_payoffs_1.push(avg[2] as f32);
+        agent_1_coops.push(avg_a[0] as f32);
+        agent_1_defects.push(avg_a[1] as f32);
+        //custom_payoffs_1.push(avg[2] as f32);
     }
 
     run_game(&mut environment, &mut agent_0, &mut agent_1)?;
-    println!("{:?}", agent_0.take_episodes().last().unwrap().list().last().unwrap());
+    //println!("{:?}", agent_0.take_episodes().last().unwrap().list().last().unwrap());
 
 
 
@@ -270,28 +287,41 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         color: colors::BLUE,
     };
 
-    let agent1_custom_data = Series{
-        data: custom_payoffs_1,
-        description: "Agent 1 - custom reward".to_string(),
-        color: colors::GREEN,
+    let agent1_coops = Series{
+        data: agent_1_coops,
+        description: "Agent 1 cooperations".to_string(),
+        color: colors::BLUE,
     };
+    let agent1_defects = Series{
+        data: agent_1_defects,
+        description: "Agent 1 defects".to_string(),
+        color: colors::RED
+    };
+
 
 
 
     let s_policy = match args.policy{
         SecondPolicy::Mixed => {format!("mixed-{:.02}", args.defect_proba)}
         SecondPolicy::SwitchTwo => {format!("switch2")}
+        SecondPolicy::FibonacciForgive => {format!("fibonacci")}
     };
 
 
     plot_many_payoffs(Path::new(
-        format!("results/payoffs-{}-{:?}-{}.svg",
+        format!("results/payoffs-1l-{}-{:?}-{}.svg",
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"))
-            .as_str(), ), &[agent0_data, agent1_data, agent1_custom_data]).unwrap();
+            .as_str(), ), &[agent0_data, agent1_data,]).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
+    plot_many_payoffs(Path::new(
+        format!("results/actions-1l-{}-{:?}-{}.svg",
+                &s_policy.as_str(),
+                args.number_of_rounds,
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"))
+            .as_str(), ), &[agent1_coops, agent1_defects,]).unwrap();
     Ok(())
     //let standard_strategy =
 }

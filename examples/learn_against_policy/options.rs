@@ -5,7 +5,8 @@ use clap::{ValueEnum, Parser};
 #[derive(ValueEnum, Debug, Clone)]
 pub enum SecondPolicy{
     Mixed,
-    SwitchTwo
+    SwitchTwo,
+    FibonacciForgive,
     //AnswerAfterTwo,
 }
 
@@ -45,6 +46,18 @@ pub struct EducatorOptions{
 
     #[arg(short = 'M', long = "defect-proba", default_value = "0.5")]
     pub defect_proba: f32,
+
+    #[arg(long = "defect-defect", default_value = "3")]
+    pub defect_versus_defect: i64,
+
+    #[arg(long = "coop-defect", default_value = "1")]
+    pub coop_versus_defect: i64,
+
+    #[arg(long = "defect-coop", default_value = "10")]
+    pub defect_versus_coop: i64,
+
+    #[arg(long = "coop-coop", default_value = "5")]
+    pub coop_versus_coop: i64,
 
 
     //#[arg(short = 'r', long = "reward", default_value = "env")]

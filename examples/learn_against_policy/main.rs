@@ -1,5 +1,4 @@
 mod options;
-mod plots;
 
 use std::{thread};
 use std::marker::PhantomData;
@@ -27,7 +26,7 @@ use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
-use crate::plots::{plot_many_payoffs, Series};
+use amfi_examples::plots::{plot_many_series, Series};
 
 
 pub struct ModelElements<ID: UsizeAgentId, Seed>{
@@ -308,7 +307,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     };
 
 
-    plot_many_payoffs(Path::new(
+    plot_many_series(Path::new(
         format!("results/payoffs-1l-{}-{:?}-{}.svg",
                 &s_policy.as_str(),
                 args.number_of_rounds,
@@ -316,7 +315,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
             .as_str(), ), &[agent0_data, agent1_data,]).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
-    plot_many_payoffs(Path::new(
+    plot_many_series(Path::new(
         format!("results/actions-1l-{}-{:?}-{}.svg",
                 &s_policy.as_str(),
                 args.number_of_rounds,

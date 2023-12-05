@@ -9,61 +9,8 @@ pub struct Series{
     pub color: RGBColor,
 }
 
-pub fn plot_payoffs(file: &Path, series_0: &Series) -> Result<(), Box<dyn std::error::Error>>{
-    let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
-    root.fill(&WHITE)?;
 
-
-    let min = match series_0.data.iter().min_by(|a, b |{
-        a.partial_cmp(b).unwrap_or(Ordering::Equal)
-    }){
-        None => 0.0,
-        Some(n) if n < &0.0 => *n,
-        Some(_) => 0.0f32
-        //Some(n) => n
-    };
-
-    let max = match series_0.data.iter().max_by(|a, b |{
-        a.partial_cmp(b).unwrap_or(Ordering::Equal)
-    }){
-        None => 0.0,
-        Some(n) if n > &0.0 => *n,
-        Some(_) => 0.0f32
-    };
-
-    info!("Plotting globals: min = {}; max = {}", min, max);
-
-    let mut chart = ChartBuilder::on(&root)
-        .caption("payoffs", ("sans-serif", 50).into_font())
-        .margin(5)
-        .x_label_area_size(30)
-        .y_label_area_size(30)
-        .build_cartesian_2d(0.0..series_0.data.len() as f32, min..max)?;
-
-    chart.configure_mesh()
-        .disable_mesh()
-        .draw()?;
-
-    chart
-        .draw_series(LineSeries::new(
-            (0..series_0.data.len()).map(|x| (x as f32, series_0.data[x])),
-            &RED,
-        ))?
-        .label(series_0.description.as_str())
-        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
-
-    chart
-        .configure_series_labels()
-        .background_style(&WHITE.mix(0.8))
-        .border_style(&BLACK)
-        .draw()?;
-
-    root.present()?;
-
-    Ok(())
-}
-
-pub fn plot_many_payoffs(file: &Path, series: &[Series]) -> Result<(), Box<dyn std::error::Error>>{
+pub fn plot_many_series(file: &Path, series: &[Series]) -> Result<(), Box<dyn std::error::Error>>{
     let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
 
@@ -128,7 +75,7 @@ pub fn plot_many_payoffs(file: &Path, series: &[Series]) -> Result<(), Box<dyn s
         .y_label_area_size(30)
         .build_cartesian_2d(0.0..series[0].data.len() as f32, global_min..global_max)?;
 
-    chart.configure_mesh().draw()?;
+    chart.configure_mesh().disable_mesh().draw()?;
 
 
     for s in series{

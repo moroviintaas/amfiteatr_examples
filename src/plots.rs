@@ -61,7 +61,7 @@ pub fn plot_payoffs(file: &Path, series_0: &Series) -> Result<(), Box<dyn std::e
     Ok(())
 }
 
-pub fn plot_many_payoffs(file: &Path, series: &[Series]) -> Result<(), Box<dyn std::error::Error>>{
+pub fn plot_many_series(file: &Path, series: &[Series]) -> Result<(), Box<dyn std::error::Error>>{
     let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
 
@@ -126,7 +126,7 @@ pub fn plot_many_payoffs(file: &Path, series: &[Series]) -> Result<(), Box<dyn s
         .y_label_area_size(30)
         .build_cartesian_2d(0.0..series[0].data.len() as f32, global_min..global_max)?;
 
-    chart.configure_mesh().draw()?;
+    chart.configure_mesh().disable_mesh().draw()?;
 
 
     for s in series{

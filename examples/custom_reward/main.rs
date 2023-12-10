@@ -26,7 +26,7 @@ use amfi_rl::{LearningNetworkPolicy, TrainConfig};
 use amfi_rl::agent::NetworkLearningAgent;
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
-use amfi_examples::plots::{plot_many_series, Series};
+use amfi_examples::plots::{plot_many_series, PlotSeries};
 
 
 pub struct ModelElements<ID: UsizeAgentId, Seed>{
@@ -210,9 +210,9 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
     }
-    let avg = [scores[0].iter().sum::<i64>()/(scores[0].len() as i64),
-            scores[1].iter().sum::<i64>()/(scores[1].len() as i64),
-            scores[2].iter().sum::<i64>()/(scores[2].len() as i64)];
+    let avg = [scores[0].iter().sum::<i64>() as f32/(scores[0].len() as f32),
+            scores[1].iter().sum::<i64>() as f32/(scores[1].len() as f32),
+            scores[2].iter().sum::<i64>() as f32/(scores[2].len() as f32)];
         info!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
 
     payoffs_0.push(avg[0] as f32);
@@ -279,15 +279,15 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
         }
 
-        let avg = [scores[0].iter().sum::<i64>() as f64 /(scores[0].len() as f64),
-            scores[1].iter().sum::<i64>() as f64/(scores[1].len() as f64),
-            scores[2].iter().sum::<i64>() as f64/(scores[2].len() as f64),
+        let avg = [scores[0].iter().sum::<i64>() as f32 /(scores[0].len() as f32),
+            scores[1].iter().sum::<i64>() as f32/(scores[1].len() as f32),
+            scores[2].iter().sum::<i64>() as f32/(scores[2].len() as f32),
         ];
         debug!("Score sums: {scores:?}, of size: ({}, {}).", scores[0].len(), scores[1].len());
         info!("Average scores: 0: {}\t1: {}", avg[0], avg[1]);
-        payoffs_0.push(avg[0] as f32);
-        payoffs_1.push(avg[1] as f32);
-        custom_payoffs_1.push(avg[2] as f32);
+        payoffs_0.push(avg[0]);
+        payoffs_1.push(avg[1]);
+        custom_payoffs_1.push(avg[2]);
     }
 
     run_game(&mut environment, &mut agent_0, &mut agent_1)?;
@@ -303,18 +303,18 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     //plot_payoffs(Path::new(format!("agent_0-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &payoffs_0[..]).unwrap();
     //plot_payoffs(Path::new(format!("agent_1-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &payoffs_1[..]).unwrap();
 
-    let agent0_data = Series{
+    let agent0_data = PlotSeries {
         data: payoffs_0,
         description: "Agent 0".to_string(),
         color: colors::RED,
     };
-    let agent1_data = Series{
+    let agent1_data = PlotSeries {
         data: payoffs_1,
         description: "Agent 1".to_string(),
         color: colors::BLUE,
     };
 
-    let agent1_custom_data = Series{
+    let agent1_custom_data = PlotSeries {
         data: custom_payoffs_1,
         description: "Agent 1 - custom reward".to_string(),
         color: colors::GREEN,

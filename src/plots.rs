@@ -3,13 +3,13 @@ use std::path::Path;
 use log::{debug, info};
 use plotters::prelude::*;
 
-pub struct Series{
+pub struct PlotSeries {
     pub data: Vec<f32>,
     pub description: String,
     pub color: RGBColor,
 }
 
-pub fn plot_payoffs(file: &Path, series_0: &Series) -> Result<(), Box<dyn std::error::Error>>{
+pub fn plot_payoffs(file: &Path, series_0: &PlotSeries) -> Result<(), Box<dyn std::error::Error>>{
     let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
 
@@ -61,7 +61,7 @@ pub fn plot_payoffs(file: &Path, series_0: &Series) -> Result<(), Box<dyn std::e
     Ok(())
 }
 
-pub fn plot_many_series(file: &Path, series: &[Series]) -> Result<(), Box<dyn std::error::Error>>{
+pub fn plot_many_series(file: &Path, series: &[PlotSeries]) -> Result<(), Box<dyn std::error::Error>>{
     let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
     root.fill(&WHITE)?;
 

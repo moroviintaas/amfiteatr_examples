@@ -1,6 +1,7 @@
 mod options;
 
 use std::{thread};
+use std::fs::File;
 use std::marker::PhantomData;
 use std::path::{Path};
 use std::sync::{Arc, Mutex};
@@ -26,7 +27,8 @@ use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
-use amfi_examples::plots::{plot_many_series, Series};
+use amfi_examples::plots::{plot_many_series, PlotSeries};
+use amfi_examples::series::{MultiAgentPayoffSeries, PayoffSeries};
 
 
 pub struct ModelElements<ID: UsizeAgentId, Seed>{
@@ -275,23 +277,23 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     //plot_payoffs(Path::new(format!("agent_0-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &payoffs_0[..]).unwrap();
     //plot_payoffs(Path::new(format!("agent_1-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &payoffs_1[..]).unwrap();
 
-    let agent0_data = Series{
+    let agent0_data = PlotSeries {
         data: payoffs_0,
         description: "Agent 0".to_string(),
         color: colors::RED,
     };
-    let agent1_data = Series{
+    let agent1_data = PlotSeries {
         data: payoffs_1,
         description: "Agent 1".to_string(),
         color: colors::BLUE,
     };
 
-    let agent1_coops = Series{
+    let agent1_coops = PlotSeries {
         data: agent_1_coops,
         description: "Agent 1 cooperations".to_string(),
         color: colors::BLUE,
     };
-    let agent1_defects = Series{
+    let agent1_defects = PlotSeries {
         data: agent_1_defects,
         description: "Agent 1 defects".to_string(),
         color: colors::RED
@@ -305,22 +307,47 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         SecondPolicy::SwitchTwo => {format!("switch2")}
         SecondPolicy::FibonacciForgive => {format!("fibonacci")}
     };
+    let stamp = chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]");
+    let base_path = "results/one_fixed/";
 
+    let mut series = MultiAgentPayoffSeries::<D>{
+        agent_series: vec![],
+    };
+    series.agent_series.push(PayoffSeries{
+        id: *agent_0.id(),
+        payoffs: agent0_data.data.clone()
+
+    });
+    series.agent_series.push(PayoffSeries{
+        id: *agent_1.id(),
+        payoffs: agent1_data.data.clone()
+
+    });
 
     plot_many_series(Path::new(
-        format!("results/payoffs-1l-{}-{:?}-{}.svg",
+        format!("{}/payoffs-1l-{}-{:?}-{}.svg",
+                base_path,
                 &s_policy.as_str(),
                 args.number_of_rounds,
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"))
-            .as_str(), ), &[agent0_data, agent1_data,]).unwrap();
+                stamp)
+            .as_str()), &[agent0_data, agent1_data,]).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
     plot_many_series(Path::new(
-        format!("results/actions-1l-{}-{:?}-{}.svg",
+        format!("{}/actions-1l-{}-{:?}-{}.svg",
+                base_path,
                 &s_policy.as_str(),
                 args.number_of_rounds,
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"))
+                stamp)
             .as_str(), ), &[agent1_coops, agent1_defects,]).unwrap();
+
+    let mut file = File::create(
+        format!("{}/payoffs-1l-{}-{:?}-{}.json",
+                base_path,
+                &s_policy.as_str(),
+                args.number_of_rounds,
+                stamp).as_str()).unwrap();
+    serde_json::to_writer(file, &series).unwrap();
     Ok(())
     //let standard_strategy =
 }

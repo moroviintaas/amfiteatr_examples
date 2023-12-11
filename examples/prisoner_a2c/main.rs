@@ -114,8 +114,8 @@ impl <P0: Policy<ClassicGameDomainNamed, InfoSetType=PrisonerInfoSet>, P1: Polic
 
             sum_rewards_0_uni += self.agent0.current_universal_score() as f64;
             sum_rewards_1_uni += self.agent1.current_universal_score() as f64;
-            sum_rewards_0_sub += self.agent0.current_subjective_score();
-            sum_rewards_1_sub += self.agent1.current_subjective_score();
+            sum_rewards_0_sub += self.agent0.current_assessment_total();
+            sum_rewards_1_sub += self.agent1.current_assessment_total();
         }
 
         sum_rewards_0_uni /= number_of_tries as f64;

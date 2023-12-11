@@ -206,7 +206,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         run_game(&mut environment, &mut agent_0, &mut agent_1)?;
         scores[0].push(agent_0.current_universal_score()) ;
         scores[1].push(agent_1.current_universal_score());
-        scores[2].push(reward_f(agent_1.current_subjective_score()) as i64);
+        scores[2].push(reward_f(agent_1.current_assessment_total()) as i64);
 
 
     }
@@ -275,7 +275,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
             run_game(&mut environment, &mut agent_0, &mut agent_1)?;
             scores[0].push(agent_0.current_universal_score());
             scores[1].push(agent_1.current_universal_score());
-            scores[2].push(reward_f(agent_1.current_subjective_score()) as i64);
+            scores[2].push(reward_f(agent_1.current_assessment_total()) as i64);
 
         }
 

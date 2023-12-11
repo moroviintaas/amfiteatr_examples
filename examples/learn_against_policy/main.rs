@@ -341,13 +341,41 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
                 stamp)
             .as_str(), ), &[agent1_coops, agent1_defects,]).unwrap();
 
-    let mut file = File::create(
+    let file = File::create(
         format!("{}/payoffs-1l-{}-{:?}-{}.json",
                 base_path,
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 stamp).as_str()).unwrap();
     serde_json::to_writer(file, &series).unwrap();
+
+    if let Some(agent_0_trace) = agent_0.episodes().last(){
+        let file_trace_0 = File::create(
+            format!(
+            "{}/trace0-1l-{}-{:?}-{}.json",
+                base_path,
+                &s_policy.as_str(),
+                args.number_of_rounds,
+                stamp).as_str()
+        ).unwrap();
+
+        serde_json::to_writer(file_trace_0, agent_0_trace).unwrap()
+    }
+    /*
+    if let Some(agent_1_trace) = agent_1.episodes().last(){
+        let file_trace_1 = File::create(
+            format!(
+            "{}/trace1-1l-{}-{:?}-{}.json",
+                base_path,
+                &s_policy.as_str(),
+                args.number_of_rounds,
+                stamp).as_str()
+        ).unwrap();
+
+        serde_json::to_writer(file_trace_1, agent_1_trace).unwrap()
+    }
+
+     */
     Ok(())
     //let standard_strategy =
 }

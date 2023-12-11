@@ -22,7 +22,7 @@ name = "custom_reward"
 
 [dependencies]
 
-amfi = {path = "../amfi" }
+amfi = {path = "../amfi", features = ["serde"] }
 amfi_rl = {path = "../amfi_rl" }
 rand = "0.8.5"
 log = "0.4.19"

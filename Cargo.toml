@@ -12,13 +12,13 @@ name = "prisoner2"
 name = "prisoner_a2c"
 
 [[example]]
-name = "many_agents"
+name = "replicator_dynamics"
 
 [[example]]
 name = "custom_reward"
 
-#[[example]]
-#name = "learn_against_policy"
+[[example]]
+name = "one_fixed"
 
 [dependencies]
 

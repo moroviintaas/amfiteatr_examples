@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::{Serialize};
 use amfi::domain::DomainParameters;
 
 #[derive(Serialize, Clone, Debug)]
@@ -7,6 +7,13 @@ where <DP as DomainParameters>::AgentId: Serialize,
     <DP as DomainParameters>::UniversalReward: Serialize,
 {
     pub id: DP::AgentId,
+    pub payoffs: Vec<f32>,
+
+}
+
+#[derive(Serialize, Clone, Debug)]
+pub struct PayoffGroupSeries{
+    pub id: String,
     pub payoffs: Vec<f32>,
 
 }

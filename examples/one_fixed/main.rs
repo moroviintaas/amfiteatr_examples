@@ -2,9 +2,7 @@ mod options;
 
 use std::{thread};
 use std::fs::File;
-use std::marker::PhantomData;
 use std::path::{Path};
-use std::sync::{Arc, Mutex};
 use log::{debug, info};
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
@@ -13,12 +11,12 @@ use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::{Parser};
 use plotters::style::colors;
 use amfi::agent::*;
-use amfi::comm::{EnvMpscPort, SyncCommAgent};
+use amfi::comm::EnvMpscPort;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi::env::generic::TracingEnvironment;
 use amfi::error::AmfiError;
 use amfi_classic::agent::{FibonacciForgiveStrategy, OwnHistoryInfoSet, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr, SwitchAfterTwo};
-use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered,  UsizeAgentId};
+use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
 use amfi_classic::domain::ClassicAction::{Cooperate, Defect};
 use amfi_classic::env::PairingState;
 use amfi_classic::policy::ClassicMixedStrategy;
@@ -30,12 +28,14 @@ use crate::options::SecondPolicy;
 use amfi_examples::plots::{plot_many_series, PlotSeries};
 use amfi_examples::series::{MultiAgentPayoffSeries, PayoffSeries};
 
-
+/*
 pub struct ModelElements<ID: UsizeAgentId, Seed>{
     pub environment: Arc<Mutex<dyn AutoEnvironmentWithScores<ClassicGameDomain<ID>>>>,
     agents: [Arc<Mutex<dyn AutomaticAgentRewarded<ClassicGameDomain<ID>>>>;2],
     seed: PhantomData<Seed>,
 }
+
+ */
 
 pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
@@ -62,7 +62,7 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
     Ok(())
 }
 type Domain = ClassicGameDomain<AgentNum>;
-type A2C = ActorCriticPolicy<D, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr>;
+//type A2C = ActorCriticPolicy<D, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr>;
 
 
 pub fn run_game(
@@ -110,8 +110,8 @@ pub enum AgentWrap{
     //Simple(Arc<Mutex<dyn Au>>)
 }
 type D = ClassicGameDomainNumbered;
-type C = SyncCommAgent<D>;
-type IS = OwnHistoryInfoSet<AgentNum>;
+//type C = SyncCommAgent<D>;
+//type IS = OwnHistoryInfoSet<AgentNum>;
 
 
 fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
@@ -119,7 +119,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let args = EducatorOptions::parse();
     setup_logger(&args).unwrap();
     let device = Device::Cpu;
-    type Domain = ClassicGameDomainNumbered;
+    //type Domain = ClassicGameDomainNumbered;
     let number_of_players = 2;
 
 
@@ -309,6 +309,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     };
     let stamp = chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]");
     let base_path = "results/one_fixed/";
+    std::fs::create_dir_all(&base_path).unwrap();
 
     let mut series = MultiAgentPayoffSeries::<D>{
         agent_series: vec![],
@@ -325,24 +326,24 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     });
 
     plot_many_series(Path::new(
-        format!("{}/payoffs-1l-{}-{:?}-{}.svg",
+        format!("{}/payoffs-1l-{}-{:?}_{}.svg",
                 base_path,
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 stamp)
-            .as_str()), &[agent0_data, agent1_data,]).unwrap();
+            .as_str()), "Payoffs",&[agent0_data, agent1_data,]).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
     plot_many_series(Path::new(
-        format!("{}/actions-1l-{}-{:?}-{}.svg",
+        format!("{}/actions-1l-{}-{:?}_{}.svg",
                 base_path,
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 stamp)
-            .as_str(), ), &[agent1_coops, agent1_defects,]).unwrap();
+            .as_str(), ), "Actions", &[agent1_coops, agent1_defects,]).unwrap();
 
     let file = File::create(
-        format!("{}/payoffs-1l-{}-{:?}-{}.json",
+        format!("{}/payoffs-1l-{}-{:?}_{}.json",
                 base_path,
                 &s_policy.as_str(),
                 args.number_of_rounds,

@@ -1,39 +1,40 @@
 mod options;
 
 use std::{thread};
-use std::marker::PhantomData;
 use std::path::{Path};
-use std::sync::{Arc, Mutex};
-use log::{debug, info, trace};
+use log::{debug, info};
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
 use amfi_rl::tensor_repr::{WayToTensor};
-use amfi_rl::torch_net::{A2CNet, NeuralNet, NeuralNetTemplate, TensorA2C};
+use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::{Parser};
 use plotters::style::colors;
 use amfi::agent::*;
-use amfi::comm::{EnvMpscPort, SyncCommAgent};
-use amfi::domain::DomainParameters;
+use amfi::comm::EnvMpscPort;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi::env::generic::TracingEnvironment;
 use amfi::error::AmfiError;
 use amfi_classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr, VerboseReward};
-use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered, UsizeAgentId};
+use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
+use amfi_classic::domain::ClassicAction::Cooperate;
 use amfi_classic::env::PairingState;
 use amfi_classic::SymmetricRewardTableInt;
 use amfi_rl::actor_critic::ActorCriticPolicy;
 use amfi_rl::{LearningNetworkPolicy, TrainConfig};
-use amfi_rl::agent::NetworkLearningAgent;
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
 use amfi_examples::plots::{plot_many_series, PlotSeries};
+use amfi_examples::series::{MultiAgentPayoffSeries, PayoffSeries};
 
 
+/*
 pub struct ModelElements<ID: UsizeAgentId, Seed>{
     pub environment: Arc<Mutex<dyn AutoEnvironmentWithScores<ClassicGameDomain<ID>>>>,
     agents: [Arc<Mutex<dyn AutomaticAgentRewarded<ClassicGameDomain<ID>>>>;2],
     seed: PhantomData<Seed>,
 }
+
+ */
 
 pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
@@ -101,8 +102,8 @@ pub enum AgentWrap{
     //Simple(Arc<Mutex<dyn Au>>)
 }
 type D = ClassicGameDomainNumbered;
-type C = SyncCommAgent<D>;
-type IS = OwnHistoryInfoSet<AgentNum>;
+//type C = SyncCommAgent<D>;
+//type IS = OwnHistoryInfoSet<AgentNum>;
 /*
 pub enum CustomAgent{
     A2C(AgentGenT<D, ActorCriticPolicy<D, IS, OwnHistoryTensorRepr>, C>)
@@ -121,7 +122,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let args = EducatorOptions::parse();
     setup_logger(&args).unwrap();
     let device = Device::Cpu;
-    type Domain = ClassicGameDomainNumbered;
+    //type Domain = ClassicGameDomainNumbered;
     let number_of_players = 2;
 
 
@@ -142,6 +143,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let mut payoffs_0 = Vec::with_capacity(args.epochs + 1);
     let mut payoffs_1 = Vec::with_capacity(args.epochs + 1);
     let mut custom_payoffs_1 = Vec::with_capacity(args.epochs + 1);
+    let mut agent_0_coops = Vec::with_capacity(args.epochs + 1);
+    let mut agent_1_coops = Vec::with_capacity(args.epochs + 1);
     //let mut opti_payoffs_1 = Vec::with_capacity(args.epochs + 1);
 
 
@@ -200,6 +203,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
     //evaluate on start
+    let mut coops = [Vec::new(), Vec::new()];
     let mut scores = [Vec::new(), Vec::new(), Vec::new()];
     for i in 0..100{
         debug!("Plaing round: {i:} of initial simulation");
@@ -207,6 +211,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         scores[0].push(agent_0.current_universal_score()) ;
         scores[1].push(agent_1.current_universal_score());
         scores[2].push(reward_f(agent_1.current_assessment_total()) as i64);
+        coops[0].push(agent_0.info_set().count_actions_self_calculate(Cooperate));
+        coops[1].push(agent_1.info_set().count_actions_self_calculate(Cooperate));
 
 
     }
@@ -214,6 +220,12 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
             scores[1].iter().sum::<i64>() as f32/(scores[1].len() as f32),
             scores[2].iter().sum::<i64>() as f32/(scores[2].len() as f32)];
         info!("Average scores: 0: {}\t1:{}", avg[0], avg[1]);
+
+    let coops_a = [coops[0].iter().map(|n| *n as i64).sum::<i64>() as f64 /(coops[0].len() as f64),
+            coops[1].iter().map(|n| *n as i64).sum::<i64>() as f64/(coops[1].len() as f64),
+    ];
+    agent_0_coops.push(coops_a[0] as f32);
+    agent_1_coops.push(coops_a[1] as f32);
 
     payoffs_0.push(avg[0] as f32);
     payoffs_1.push(avg[1] as f32);
@@ -270,24 +282,33 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
         let mut scores = [Vec::new(), Vec::new(), Vec::new()];
+        let mut coops = [Vec::new(), Vec::new()];
         for i in 0..100{
             debug!("Plaing round: {i:} of initial simulation");
             run_game(&mut environment, &mut agent_0, &mut agent_1)?;
             scores[0].push(agent_0.current_universal_score());
             scores[1].push(agent_1.current_universal_score());
             scores[2].push(reward_f(agent_1.current_assessment_total()) as i64);
+            coops[0].push(agent_0.info_set().count_actions_self_calculate(Cooperate));
+            coops[1].push(agent_1.info_set().count_actions_self_calculate(Cooperate));
 
         }
 
         let avg = [scores[0].iter().sum::<i64>() as f32 /(scores[0].len() as f32),
             scores[1].iter().sum::<i64>() as f32/(scores[1].len() as f32),
             scores[2].iter().sum::<i64>() as f32/(scores[2].len() as f32),
+
+        ];
+        let coops_a = [coops[0].iter().map(|n| *n as i64).sum::<i64>() as f64 /(coops[0].len() as f64),
+            coops[1].iter().map(|n| *n as i64).sum::<i64>() as f64/(coops[1].len() as f64),
         ];
         debug!("Score sums: {scores:?}, of size: ({}, {}).", scores[0].len(), scores[1].len());
         info!("Average scores: 0: {}\t1: {}", avg[0], avg[1]);
         payoffs_0.push(avg[0]);
         payoffs_1.push(avg[1]);
         custom_payoffs_1.push(avg[2]);
+        agent_0_coops.push(coops_a[0] as f32);
+        agent_1_coops.push(coops_a[1] as f32);
     }
 
     run_game(&mut environment, &mut agent_0, &mut agent_1)?;
@@ -320,18 +341,55 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         color: colors::GREEN,
     };
 
+    let agent1_coops = PlotSeries {
+        data: agent_1_coops,
+        description: "Agent 1 cooperations".to_string(),
+        color: colors::BLUE,
+    };
+    let agent0_coops = PlotSeries {
+        data: agent_0_coops,
+        description: "Agent 0 cooperations".to_string(),
+        color: colors::RED
+    };
+
     let s_policy = match args.policy{
         SecondPolicy::StdMinDefects => {
             format!("{:?}-{:?}", SecondPolicy::StdMinDefects, args.reward_bias_scale)
         },
         a => format!("{:?}", a)
     };
+    let stamp = chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]");
+    let base_path = "results/custom_assessment/";
+
+    let mut series = MultiAgentPayoffSeries::<D>{
+        agent_series: vec![],
+    };
+    series.agent_series.push(PayoffSeries{
+        id: *agent_0.id(),
+        payoffs: agent0_data.data.clone()
+
+    });
+    series.agent_series.push(PayoffSeries{
+        id: *agent_1.id(),
+        payoffs: agent1_data.data.clone()
+
+    });
+
     plot_many_series(Path::new(
-        format!("results/payoffs-{}-{:?}-{}.svg",
+        format!("{}/payoffs-{}-{:?}_{}.svg",
+                base_path,
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"))
-            .as_str(), ), &[agent0_data, agent1_data, agent1_custom_data]).unwrap();
+            .as_str(), ),  "Actions",&[agent0_data, agent1_data, agent1_custom_data]).unwrap();
+
+    plot_many_series(Path::new(
+        format!("{}/actions-1l-{}-{:?}_{}.svg",
+                base_path,
+                &s_policy.as_str(),
+                args.number_of_rounds,
+                stamp)
+            .as_str(), ), "Cooperations",&[agent0_coops, agent1_coops,]).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
     Ok(())

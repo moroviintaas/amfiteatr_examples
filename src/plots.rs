@@ -10,7 +10,7 @@ pub struct PlotSeries {
 }
 
 pub fn plot_payoffs(file: &Path, series_0: &PlotSeries) -> Result<(), Box<dyn std::error::Error>>{
-    let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
+    let root  = SVGBackend::new(&file, (800, 600)).into_drawing_area();
     root.fill(&WHITE)?;
 
 
@@ -61,8 +61,8 @@ pub fn plot_payoffs(file: &Path, series_0: &PlotSeries) -> Result<(), Box<dyn st
     Ok(())
 }
 
-pub fn plot_many_series(file: &Path, series: &[PlotSeries]) -> Result<(), Box<dyn std::error::Error>>{
-    let root  = SVGBackend::new(&file, (1024, 768)).into_drawing_area();
+pub fn plot_many_series(file: &Path, title: &str, series: &[PlotSeries]) -> Result<(), Box<dyn std::error::Error>>{
+    let root  = SVGBackend::new(&file, (400, 300)).into_drawing_area();
     root.fill(&WHITE)?;
 
     let mut mins = Vec::with_capacity(series.len());
@@ -120,10 +120,10 @@ pub fn plot_many_series(file: &Path, series: &[PlotSeries]) -> Result<(), Box<dy
 
 
     let mut chart = ChartBuilder::on(&root)
-        .caption("payoffs", ("sans-serif", 50).into_font())
+        .caption(title, ("sans-serif", 30).into_font())
         .margin(5)
-        .x_label_area_size(30)
-        .y_label_area_size(30)
+        .x_label_area_size(40)
+        .y_label_area_size(40)
         .build_cartesian_2d(0.0..series[0].data.len() as f32, global_min..global_max)?;
 
     chart.configure_mesh().disable_mesh().draw()?;

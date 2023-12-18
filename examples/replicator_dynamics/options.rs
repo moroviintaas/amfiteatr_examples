@@ -9,7 +9,19 @@ pub struct ReplicatorOptions{
     #[arg(short = 'v', long = "log_level", value_enum, default_value = "info")]
     pub log_level: LevelFilter,
 
-    #[arg(short = 'a', long = "log_level_amfi", value_enum, default_value = "debug")]
+    /*
+    #[arg(short = 'V', long = "general_log_level", value_enum, default_value = "warn")]
+    pub general_log_level: LevelFilter,
+
+
+     */
+    #[arg(short = 'R', long = "rl_log_level", value_enum, default_value = "warn")]
+    pub rl_log_level: LevelFilter,
+
+    #[arg(short = 'C', long = "classic_log_level", value_enum, default_value = "warn")]
+    pub classic_log_level: LevelFilter,
+
+    #[arg(short = 'a', long = "log_level_amfi", value_enum, default_value = "warn")]
     pub log_level_amfi: LevelFilter,
 
     #[arg(short = 'o', long = "logfile")]
@@ -44,6 +56,9 @@ pub struct ReplicatorOptions{
 
     #[arg(short = 'l', long = "learners", default_value = "100")]
     pub number_of_learning: usize,
+
+    #[arg(short = 'b', long = "batch", default_value = "64")]
+    pub batch_size: usize,
 
 
 

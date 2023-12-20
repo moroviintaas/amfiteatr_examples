@@ -61,7 +61,7 @@ pub fn plot_payoffs(file: &Path, series_0: &PlotSeries) -> Result<(), Box<dyn st
     Ok(())
 }
 
-pub fn plot_many_series(file: &Path, title: &str, series: &[PlotSeries]) -> Result<(), Box<dyn std::error::Error>>{
+pub fn plot_many_series(file: &Path, title: &str, series: &[PlotSeries], x_desc: &str, y_desc: &str) -> Result<(), Box<dyn std::error::Error>>{
     let root  = SVGBackend::new(&file, (400, 300)).into_drawing_area();
     root.fill(&WHITE)?;
 
@@ -126,7 +126,12 @@ pub fn plot_many_series(file: &Path, title: &str, series: &[PlotSeries]) -> Resu
         .y_label_area_size(40)
         .build_cartesian_2d(0.0..series[0].data.len() as f32, global_min..global_max)?;
 
-    chart.configure_mesh().disable_mesh().draw()?;
+    chart.configure_mesh()
+        .x_desc(x_desc)
+        .y_desc(y_desc)
+        //.axis_desc_style()
+        .disable_mesh().draw()?;
+
 
 
     for s in series{
@@ -139,32 +144,25 @@ pub fn plot_many_series(file: &Path, title: &str, series: &[PlotSeries]) -> Resu
             .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &s.color));
 
     }
+    chart
+        .configure_series_labels()
+        .position(SeriesLabelPosition::LowerLeft).margin(5)
+        //.legend_area_size(3)
+        .border_style(BLACK)
+        .background_style(WHITE.mix(0.8))
+        .label_font(("sans-serif", 14))
+        .draw()?;
+
+
     /*
-    chart
-        .draw_series(LineSeries::new(
-            (0..payoffs_0.len()).map(|x| (x as f32, payoffs_0[x])),
-            &RED,
-        ))?
-        .label("agent 0")
-        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &RED));
-
-    chart
-
-        .draw_series(LineSeries::new(
-            (0..payoffs_1.len()).map(|x| (x as f32, payoffs_1[x])),
-            &BLUE,
-        ))?
-        .label("agent 1")
-        .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUE));
-
-     */
-
     chart
         .configure_series_labels()
         .background_style(&WHITE.mix(0.8))
         .border_style(&BLACK)
         .draw()?;
 
+
+     */
     root.present()?;
 
     Ok(())

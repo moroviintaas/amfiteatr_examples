@@ -14,7 +14,7 @@ use amfi::comm::EnvMpscPort;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi::env::generic::TracingEnvironment;
 use amfi::error::AmfiError;
-use amfi_classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr, VerboseReward};
+use amfi_classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr, AgentAssessmentClasic};
 use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
 use amfi_classic::domain::ClassicAction::Cooperate;
 use amfi_classic::env::PairingState;
@@ -126,13 +126,16 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let number_of_players = 2;
 
 
-    let reward_f: Box<dyn Fn(VerboseReward<i64>) -> f32> = match args.policy{
+    let reward_f: Box<dyn Fn(AgentAssessmentClasic<i64>) -> f32> = match args.policy{
         SecondPolicy::Std => Box::new(|reward| reward.table_payoff() as f32),
-        SecondPolicy::MinDefects => {Box::new(|reward| reward.other_coop_as_reward() as f32)}
+        SecondPolicy::MinDefects => {Box::new(|reward| reward.coops_as_reward() as f32)}
         SecondPolicy::StdMinDefects => Box::new(|reward|
             reward.f_combine_table_with_other_coop(args.reward_bias_scale * args.number_of_rounds as f32)),
         SecondPolicy::StdMinDefectsBoth => Box::new(|reward|{
             reward.f_combine_table_with_both_coop(args.reward_bias_scale * args.number_of_rounds as f32)
+        }),
+        SecondPolicy::Edu => Box::new(|reward|{
+            reward.combine_edu_assessment(args.reward_bias_scale )
         }),
     };
 
@@ -277,6 +280,14 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
                     Tensor::from_slice(&v_custom_reward[..])
                 })
+            },
+            SecondPolicy::Edu => {
+                agent_1.policy_mut().train_on_trajectories(&trajectories_1[..], |step| {
+                    let custom_reward = reward_f(step.step_subjective_reward());
+                    let v_custom_reward = vec![custom_reward];
+
+                    Tensor::from_slice(&v_custom_reward[..])
+                })
             }
         }?;
 
@@ -337,7 +348,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
     let agent1_custom_data = PlotSeries {
         data: custom_payoffs_1,
-        description: "Agent 1 - custom reward".to_string(),
+        description: "Agent 1 - self assessment".to_string(),
         color: colors::GREEN,
     };
 
@@ -356,6 +367,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         SecondPolicy::StdMinDefects => {
             format!("{:?}-{:?}", SecondPolicy::StdMinDefects, args.reward_bias_scale)
         },
+        SecondPolicy::Edu => format!("edu"),
         a => format!("{:?}", a)
     };
     let stamp = chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]");
@@ -375,13 +387,21 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
     });
 
+    let plot_series = match args.policy{
+        SecondPolicy::Std => vec![agent0_data, agent1_data],
+        _ => vec![agent0_data, agent1_data, agent1_custom_data]
+    };
+
     plot_many_series(Path::new(
         format!("{}/payoffs-{}-{:?}_{}.svg",
                 base_path,
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"))
-            .as_str(), ),  "Actions",&[agent0_data, agent1_data, agent1_custom_data]).unwrap();
+            .as_str(), ),  "",&plot_series[..],
+        "Epoch",
+        "Payoff"
+    ).unwrap();
 
     plot_many_series(Path::new(
         format!("{}/actions-1l-{}-{:?}_{}.svg",
@@ -389,7 +409,10 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 stamp)
-            .as_str(), ), "Cooperations",&[agent0_coops, agent1_coops,]).unwrap();
+            .as_str(), ), "",&[agent0_coops, agent1_coops,],
+            "Epoch",
+            "Cooperations"
+            ).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
     Ok(())

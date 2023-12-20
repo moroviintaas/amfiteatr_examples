@@ -2,12 +2,13 @@ use std::path::PathBuf;
 use log::LevelFilter;
 use clap::{ValueEnum, Parser};
 
-#[derive(ValueEnum, Debug, Clone)]
+#[derive(ValueEnum, Debug, Copy,  Clone)]
 pub enum SecondPolicy{
     Std,
     MinDefects,
     StdMinDefects,
     StdMinDefectsBoth,
+    Edu,
     //AnswerAfterTwo,
 }
 

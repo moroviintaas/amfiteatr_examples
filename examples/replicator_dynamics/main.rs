@@ -17,8 +17,8 @@ use amfi::comm::{
     AgentMpscPort,
     EnvMpscPort
 };
-use amfi::env::generic::BasicEnvironment;
-use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment};
+use amfi::env::generic::{BasicEnvironment, TracingEnvironment};
+use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingEnv};
 use amfi_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfi::agent::RewardedAgent;
 use amfi::agent::TracingAgent;
@@ -93,7 +93,7 @@ pub enum Group{
 }
 
 struct Model{
-    pub environment: BasicEnvironment<D, S, EnvMpscPort<D>>,
+    pub environment:  TracingEnvironment<D, S, EnvMpscPort<D>>,
     //agents: Arc<Mutex<dyn MultiEpisodeAgent<D, (), InfoSetType=()>>>,
     pub mixed_agents: Vec<Arc<Mutex<AgentGen<D, MixedPolicy, AgentComm>>>>,
     pub hawk_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
@@ -123,7 +123,7 @@ struct Model{
 impl Model{
 
     #[allow(dead_code)]
-    pub fn new(environment: BasicEnvironment<D, S, EnvMpscPort<D>>) -> Self{
+    pub fn new(environment: TracingEnvironment<D, S, EnvMpscPort<D>>) -> Self{
         Self{
             environment, mixed_agents: Vec::new(), hawk_agents: Vec::new(), dove_agents: Vec::new(),
             learning_agents: Vec::new(), averages_mixed: Vec::new(),
@@ -143,7 +143,7 @@ impl Model{
         }
     }
 
-    pub fn new_with_agents(environment: BasicEnvironment<D, S, EnvMpscPort<D>>,
+    pub fn new_with_agents(environment: TracingEnvironment<D, S, EnvMpscPort<D>>,
                            learning_agents: Vec<Arc<Mutex<AgentGenT<D, Pol, AgentComm>>>>,
         mixed_agents: Vec<Arc<Mutex<AgentGen<D, MixedPolicy, AgentComm>>>>,
         hawk_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
@@ -422,7 +422,7 @@ fn main() -> Result<(), AmfiError<D>>{
     }
     let env_state = PairingState::new_even(total_number_of_players,
                                            args.number_of_rounds, reward_table)?;
-    let environment = BasicEnvironment::new(env_state, env_adapter);
+    let environment = TracingEnvironment::new(env_state, env_adapter);
 
 
     let mut model = Model::new_with_agents(environment, learning_agents, mixed_agents,
@@ -600,15 +600,16 @@ fn main() -> Result<(), AmfiError<D>>{
     if !payoff_plot_data_hawk.data.is_empty(){
         plot_payoff_series.push(payoff_plot_data_hawk);
     }
+    if !payoff_plot_data_dove.data.is_empty(){
+        plot_payoff_series.push(payoff_plot_data_dove);
+    }
     if !payoff_plot_data_all.data.is_empty(){
         plot_payoff_series.push(payoff_plot_data_all);
     }
     if !payoff_plot_data_mixed.data.is_empty(){
         plot_payoff_series.push(payoff_plot_data_mixed);
     }
-    if !payoff_plot_data_dove.data.is_empty(){
-        plot_payoff_series.push(payoff_plot_data_dove);
-    }
+
 
 
 
@@ -635,7 +636,9 @@ fn main() -> Result<(), AmfiError<D>>{
                 args.number_of_doves,
                 args.number_of_mixes,
                 stamp
-        ).as_str()), "Payoffs",&plot_payoff_series[..]
+        ).as_str()), "",&plot_payoff_series[..],
+        "Epoch",
+        "Payoff"
     ).unwrap();
 
     plot_many_series(Path::new(
@@ -647,7 +650,9 @@ fn main() -> Result<(), AmfiError<D>>{
                 args.number_of_doves,
                 args.number_of_mixes,
                 stamp
-        ).as_str()), "Actions",&plot_action_series[..]
+        ).as_str()), "",&plot_action_series[..],
+        "Epoch",
+        "Actions taken"
     ).unwrap();
 
 
@@ -662,6 +667,17 @@ fn main() -> Result<(), AmfiError<D>>{
                 args.number_of_mixes,
                 stamp).as_str()).unwrap();
     serde_json::to_writer(file, &payoff_series).unwrap();
+
+    let file = File::create(
+        format!("{}/game-trajectory-{:?}_{}-{}-{}-{}_{}.json",
+                base_path,
+                args.number_of_rounds,
+                args.number_of_learning,
+                args.number_of_hawks,
+                args.number_of_doves,
+                args.number_of_mixes,
+                stamp).as_str()).unwrap();
+    serde_json::to_writer_pretty(file, &model.environment.trajectory()).unwrap();
     
 
 

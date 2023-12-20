@@ -7,7 +7,7 @@ pub enum SecondPolicy{
     Mixed,
     SwitchTwo,
     FibonacciForgive,
-    //AnswerAfterTwo,
+    ForgiveAfterTwo,
 }
 
 #[derive(Parser)]

@@ -15,7 +15,7 @@ use amfi::comm::EnvMpscPort;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi::env::generic::TracingEnvironment;
 use amfi::error::AmfiError;
-use amfi_classic::agent::{FibonacciForgiveStrategy, OwnHistoryInfoSet, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr, SwitchAfterTwo};
+use amfi_classic::agent::{FibonacciForgiveStrategy, ForgiveAfterTwo, OwnHistoryInfoSet, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr, SwitchAfterTwo};
 use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
 use amfi_classic::domain::ClassicAction::{Cooperate, Defect};
 use amfi_classic::env::PairingState;
@@ -188,7 +188,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
             Box::new(AgentGenT::new(state1, comm1, ClassicMixedStrategy::new(args.defect_proba as f64)))
         }
         SecondPolicy::SwitchTwo => {Box::new(AgentGenT::new(state1, comm1, SwitchAfterTwo{}))}
-        SecondPolicy::FibonacciForgive => {Box::new(AgentGenT::new(state1, comm1, FibonacciForgiveStrategy{}))}
+        SecondPolicy::FibonacciForgive => {Box::new(AgentGenT::new(state1, comm1, FibonacciForgiveStrategy{}))},
+        SecondPolicy::ForgiveAfterTwo => {Box::new(AgentGenT::new(state1, comm1, amfi_classic::agent::ForgiveAfterTwo{}))}
     };
 
 
@@ -305,7 +306,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let s_policy = match args.policy{
         SecondPolicy::Mixed => {format!("mixed-{:.02}", args.defect_proba)}
         SecondPolicy::SwitchTwo => {format!("switch2")}
-        SecondPolicy::FibonacciForgive => {format!("fibonacci")}
+        SecondPolicy::FibonacciForgive => {format!("fibonacci")},
+        SecondPolicy::ForgiveAfterTwo => format!("forgive_2coops"),
     };
     let stamp = chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]");
     let base_path = "results/one_fixed/";
@@ -331,7 +333,10 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 stamp)
-            .as_str()), "Payoffs",&[agent0_data, agent1_data,]).unwrap();
+            .as_str()), "",&[agent0_data, agent1_data,],
+        "Epoch",
+        "Payoff"
+    ).unwrap();
     //plot_payoffs(Path::new(format!("custom-payoffs-{:?}-{:?}.svg", args.policy, args.number_of_rounds).as_str()), &agent1_custom_data ).unwrap();
 
     plot_many_series(Path::new(
@@ -340,7 +345,10 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
                 &s_policy.as_str(),
                 args.number_of_rounds,
                 stamp)
-            .as_str(), ), "Actions", &[agent1_coops, agent1_defects,]).unwrap();
+            .as_str(), ), "", &[agent1_coops, agent1_defects,],
+        "Epoch",
+        "Actions taken"
+    ).unwrap();
 
     let file = File::create(
         format!("{}/payoffs-1l-{}-{:?}_{}.json",

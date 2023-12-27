@@ -11,11 +11,11 @@ use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::{Parser};
 use plotters::style::colors;
 use amfi::agent::*;
-use amfi::comm::EnvMpscPort;
+use amfi::comm::EnvironmentMpscPort;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
-use amfi::env::generic::TracingEnvironment;
+use amfi::env::TracingEnvironment;
 use amfi::error::AmfiError;
-use amfi_classic::agent::{FibonacciForgiveStrategy, ForgiveAfterTwo, OwnHistoryInfoSet, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr, SwitchAfterTwo};
+use amfi_classic::agent::{FibonacciForgiveStrategy, OwnHistoryInfoSet, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr, SwitchAfterTwo};
 use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
 use amfi_classic::domain::ClassicAction::{Cooperate, Defect};
 use amfi_classic::env::PairingState;
@@ -137,7 +137,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
 
-    let mut env_adapter = EnvMpscPort::new();
+    let mut env_adapter = EnvironmentMpscPort::new();
     let comm0 = env_adapter.register_agent(0).unwrap();
     let comm1 = env_adapter.register_agent(1).unwrap();
 
@@ -178,18 +178,18 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = ActorCriticPolicy::new(net0, opt0, tensor_repr, TrainConfig {gamma: 0.99});
     let state0 = OwnHistoryInfoSet::new(0, reward_table.into());
-    let mut agent_0 = AgentGenT::new(state0, comm0, normal_policy);
+    let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
 
     let state1 = OwnHistoryInfoSet::new(1, reward_table.into());
 
     let mut agent_1: Box<dyn ModelAgent<D, (), OwnHistoryInfoSetNumbered, >> = match args.policy{
         SecondPolicy::Mixed => {
-            Box::new(AgentGenT::new(state1, comm1, ClassicMixedStrategy::new(args.defect_proba as f64)))
+            Box::new(TracingAgentGen::new(state1, comm1, ClassicMixedStrategy::new(args.defect_proba as f64)))
         }
-        SecondPolicy::SwitchTwo => {Box::new(AgentGenT::new(state1, comm1, SwitchAfterTwo{}))}
-        SecondPolicy::FibonacciForgive => {Box::new(AgentGenT::new(state1, comm1, FibonacciForgiveStrategy{}))},
-        SecondPolicy::ForgiveAfterTwo => {Box::new(AgentGenT::new(state1, comm1, amfi_classic::agent::ForgiveAfterTwo{}))}
+        SecondPolicy::SwitchTwo => {Box::new(TracingAgentGen::new(state1, comm1, SwitchAfterTwo{}))}
+        SecondPolicy::FibonacciForgive => {Box::new(TracingAgentGen::new(state1, comm1, FibonacciForgiveStrategy{}))},
+        SecondPolicy::ForgiveAfterTwo => {Box::new(TracingAgentGen::new(state1, comm1, amfi_classic::agent::ForgiveAfterTwo{}))}
     };
 
 

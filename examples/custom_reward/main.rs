@@ -10,9 +10,9 @@ use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::{Parser};
 use plotters::style::colors;
 use amfi::agent::*;
-use amfi::comm::EnvMpscPort;
+use amfi::comm::EnvironmentMpscPort;
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
-use amfi::env::generic::TracingEnvironment;
+use amfi::env::TracingEnvironment;
 use amfi::error::AmfiError;
 use amfi_classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr, AgentAssessmentClasic};
 use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
@@ -152,7 +152,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
 
-    let mut env_adapter = EnvMpscPort::new();
+    let mut env_adapter = EnvironmentMpscPort::new();
     let comm0 = env_adapter.register_agent(0).unwrap();
     let comm1 = env_adapter.register_agent(1).unwrap();
 
@@ -192,7 +192,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = ActorCriticPolicy::new(net0, opt0, tensor_repr, TrainConfig {gamma: 0.99});
     let state0 = OwnHistoryInfoSet::new(0, reward_table.into());
-    let mut agent_0 = AgentGenT::new(state0, comm0, normal_policy);
+    let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
 
     let state1 = OwnHistoryInfoSet::new(1, reward_table.into());
@@ -202,7 +202,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let opt1 = net1.build_optimizer(Adam::default(), 1e-4).unwrap();
     let policy1 = ActorCriticPolicy::new(net1, opt1, tensor_repr, TrainConfig {gamma: 0.99});
     //let mut agent_1 = AgentGenT::new(state1, comm1, Arc::new(Mutex::new(policy1)));
-    let mut agent_1 = AgentGenT::new(state1, comm1, policy1);
+    let mut agent_1 = TracingAgentGen::new(state1, comm1, policy1);
 
 
     //evaluate on start

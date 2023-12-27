@@ -6,8 +6,8 @@ use log::LevelFilter;
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
 use amfi::agent::{*};
-use amfi::comm::{SyncCommAgent, SyncCommEnv};
-use amfi::env::generic::HashMapEnvT;
+use amfi::comm::{StdAgentEndpoint, StdEnvironmentEndpoint};
+use amfi::env::TracingHashMapEnvironment;
 use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment};
 use amfi::error::AmfiError;
 use amfi_classic::agent::{PrisonerInfoSet, PrisonerInfoSetWay, SwitchOnTwoSubsequent};
@@ -77,9 +77,9 @@ pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Resul
 
 
 struct PrisonerModel<P0: Policy<ClassicGameDomainNamed, InfoSetType=PrisonerInfoSet>, P1: Policy<ClassicGameDomainNamed, InfoSetType=PrisonerInfoSet>>{
-    pub env: HashMapEnvT<ClassicGameDomainNamed, PrisonerEnvState, SyncCommEnv<ClassicGameDomainNamed>>,
-    pub agent0: AgentGenT<ClassicGameDomainNamed, P0, SyncCommAgent<ClassicGameDomainNamed>>,
-    pub agent1: AgentGenT<ClassicGameDomainNamed, P1, SyncCommAgent<ClassicGameDomainNamed>>,
+    pub env: TracingHashMapEnvironment<ClassicGameDomainNamed, PrisonerEnvState, StdEnvironmentEndpoint<ClassicGameDomainNamed>>,
+    pub agent0: TracingAgentGen<ClassicGameDomainNamed, P0, StdAgentEndpoint<ClassicGameDomainNamed>>,
+    pub agent1: TracingAgentGen<ClassicGameDomainNamed, P1, StdAgentEndpoint<ClassicGameDomainNamed>>,
     pub env_default_state: PrisonerEnvState,
     pub agent0_default_state: <P0 as Policy<ClassicGameDomainNamed>>::InfoSetType,
     pub agent1_default_state: <P1 as Policy<ClassicGameDomainNamed>>::InfoSetType,
@@ -206,12 +206,12 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let initial_env_state = PrisonerEnvState::new(reward_table, 10);
     let env_state = initial_env_state.clone();
 
-    let (comm_env_0, comm_prisoner_0) = SyncCommEnv::new_pair();
-    let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
+    let (comm_env_0, comm_prisoner_0) = StdEnvironmentEndpoint::new_pair();
+    let (comm_env_1, comm_prisoner_1) = StdEnvironmentEndpoint::new_pair();
 
     //let initial_prisoner_state = PrisonerInfoSet::new(reward_table);
 
-    let prisoner0 = AgentGenT::new(
+    let prisoner0 = TracingAgentGen::new(
         PrisonerInfoSet::new(Alice, reward_table), comm_prisoner_0, SwitchOnTwoSubsequent{});
 
 
@@ -235,7 +235,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     //let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerStateTranslate {});
     let n_policy = ActorCriticPolicy::new(neural_net, optimiser, PrisonerInfoSetWay {}, TrainConfig { gamma: 0.99 });
 
-    let mut prisoner1 = AgentGenT::new(
+    let mut prisoner1 = TracingAgentGen::new(
         PrisonerInfoSet::new(Bob, reward_table.clone()), comm_prisoner_1, n_policy);
 
     if let Some(var_store_file) = args.load_file{
@@ -245,7 +245,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
     let mut env_coms = HashMap::new();
     env_coms.insert(Alice, comm_env_0);
     env_coms.insert(Bob, comm_env_1);
-    let env = HashMapEnvT::new(env_state, env_coms);
+    let env = TracingHashMapEnvironment::new(env_state, env_coms);
 
 
     let mut model = PrisonerModel{

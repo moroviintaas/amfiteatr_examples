@@ -15,9 +15,9 @@ use tch::nn::{Adam, VarStore};
 use amfi::agent::*;
 use amfi::comm::{
     AgentMpscPort,
-    EnvMpscPort
+    EnvironmentMpscPort
 };
-use amfi::env::generic::{BasicEnvironment, TracingEnvironment};
+use amfi::env::{TracingEnvironment};
 use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingEnv};
 use amfi_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfi::agent::RewardedAgent;
@@ -93,12 +93,12 @@ pub enum Group{
 }
 
 struct Model{
-    pub environment:  TracingEnvironment<D, S, EnvMpscPort<D>>,
+    pub environment:  TracingEnvironment<D, S, EnvironmentMpscPort<D>>,
     //agents: Arc<Mutex<dyn MultiEpisodeAgent<D, (), InfoSetType=()>>>,
     pub mixed_agents: Vec<Arc<Mutex<AgentGen<D, MixedPolicy, AgentComm>>>>,
     pub hawk_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
     pub dove_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
-    pub learning_agents: Vec<Arc<Mutex<AgentGenT<D, Pol, AgentComm>>>>,
+    pub learning_agents: Vec<Arc<Mutex<TracingAgentGen<D, Pol, AgentComm>>>>,
 
     //averages in groups in epochs - one entry in vec is average of players in that group for that episode
     pub averages_mixed: Vec<f32>,
@@ -123,7 +123,7 @@ struct Model{
 impl Model{
 
     #[allow(dead_code)]
-    pub fn new(environment: TracingEnvironment<D, S, EnvMpscPort<D>>) -> Self{
+    pub fn new(environment: TracingEnvironment<D, S, EnvironmentMpscPort<D>>) -> Self{
         Self{
             environment, mixed_agents: Vec::new(), hawk_agents: Vec::new(), dove_agents: Vec::new(),
             learning_agents: Vec::new(), averages_mixed: Vec::new(),
@@ -143,11 +143,11 @@ impl Model{
         }
     }
 
-    pub fn new_with_agents(environment: TracingEnvironment<D, S, EnvMpscPort<D>>,
-                           learning_agents: Vec<Arc<Mutex<AgentGenT<D, Pol, AgentComm>>>>,
-        mixed_agents: Vec<Arc<Mutex<AgentGen<D, MixedPolicy, AgentComm>>>>,
-        hawk_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
-        dove_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
+    pub fn new_with_agents(environment: TracingEnvironment<D, S, EnvironmentMpscPort<D>>,
+                           learning_agents: Vec<Arc<Mutex<TracingAgentGen<D, Pol, AgentComm>>>>,
+                           mixed_agents: Vec<Arc<Mutex<AgentGen<D, MixedPolicy, AgentComm>>>>,
+                           hawk_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
+                           dove_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
         ) -> Self{
         Self{
             environment, learning_agents,
@@ -181,6 +181,7 @@ impl Model{
         self.average_learning_defects.clear();
     }
 
+    #[allow(dead_code)]
     pub fn clear_trajectories(&mut self){
 
         for agent in &self.learning_agents{
@@ -360,9 +361,9 @@ fn main() -> Result<(), AmfiError<D>>{
         }}
     });
 
-    let mut env_adapter = EnvMpscPort::new();
+    let mut env_adapter = EnvironmentMpscPort::new();
 
-    let mut learning_agents: Vec<Arc<Mutex<AgentGenT<D, Pol, AgentComm>>>> = Vec::new();
+    let mut learning_agents: Vec<Arc<Mutex<TracingAgentGen<D, Pol, AgentComm>>>> = Vec::new();
     let mut mixed_agents: Vec<Arc<Mutex<AgentGen<D, MixedPolicy, AgentComm>>>> = Vec::new();
     let mut hawk_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>> = Vec::new();
     let mut dove_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>> = Vec::new();
@@ -387,7 +388,7 @@ fn main() -> Result<(), AmfiError<D>>{
         let net = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
         let opt = net.build_optimizer(Adam::default(), 1e-4).unwrap();
         let policy = ActorCriticPolicy::new(net, opt, tensor_repr, TrainConfig {gamma: 0.99});
-        let agent = AgentGenT::new(state, comm, policy);
+        let agent = TracingAgentGen::new(state, comm, policy);
         learning_agents.push(Arc::new(Mutex::new(agent)));
 
     }

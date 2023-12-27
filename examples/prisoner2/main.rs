@@ -2,9 +2,9 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::thread;
 use log::LevelFilter;
-use amfi::agent::{AgentGenT, AgentWithId, AutomaticAgentRewarded, ReinitAgent, StatefulAgent, TracingAgent};
-use amfi::comm::SyncCommEnv;
-use amfi::env::generic::HashMapEnvT;
+use amfi::agent::{TracingAgentGen, IdAgent, AutomaticAgentRewarded, ReinitAgent, StatefulAgent, TracingAgent};
+use amfi::comm::StdEnvironmentEndpoint;
+use amfi::env::TracingHashMapEnvironment;
 use amfi::env::{ReinitEnvironment, RoundRobinUniversalEnvironment, TracingEnv};
 use amfi::error::AmfiError;
 use amfi_classic::agent::{Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
@@ -54,20 +54,20 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
 
     let env_state = PrisonerEnvState::new(reward_table,  10);
 
-    let (comm_env_0, comm_prisoner_0) = SyncCommEnv::new_pair();
-    let (comm_env_1, comm_prisoner_1) = SyncCommEnv::new_pair();
+    let (comm_env_0, comm_prisoner_0) = StdEnvironmentEndpoint::new_pair();
+    let (comm_env_1, comm_prisoner_1) = StdEnvironmentEndpoint::new_pair();
 
-    let mut prisoner0 = AgentGenT::new(
+    let mut prisoner0 = TracingAgentGen::new(
         PrisonerInfoSet::new(Alice, reward_table.clone()), comm_prisoner_0, ClassicPureStrategy::new(ClassicAction::Cooperate));
 
-    let mut prisoner1 = AgentGenT::new(
+    let mut prisoner1 = TracingAgentGen::new(
         PrisonerInfoSet::new(Bob, reward_table.clone()), comm_prisoner_1, Forgive1Policy{});
 
     let mut env_coms = HashMap::new();
     env_coms.insert(Alice, comm_env_0);
     env_coms.insert(Bob, comm_env_1);
 
-    let mut env = HashMapEnvT::new(env_state, env_coms);
+    let mut env = TracingHashMapEnvironment::new(env_state, env_coms);
 
     thread::scope(|s|{
         s.spawn(||{

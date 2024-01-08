@@ -14,7 +14,7 @@ use plotters::style::colors;
 use tch::nn::{Adam, VarStore};
 use amfi::agent::*;
 use amfi::comm::{
-    AgentMpscPort,
+    AgentMpscAdapter,
     EnvironmentMpscPort
 };
 use amfi::env::{TracingEnvironment};
@@ -83,7 +83,7 @@ type S = PairingState<<D as DomainParameters>::AgentId>;
 type Pol = ActorCriticPolicy<D, OwnHistoryInfoSet<<D as DomainParameters>::AgentId>, OwnHistoryTensorRepr>;
 type MixedPolicy = ClassicMixedStrategy<AgentNum, OwnHistoryInfoSet<AgentNum>>;
 type PurePolicy = ClassicPureStrategy<AgentNum, OwnHistoryInfoSet<AgentNum>>;
-type AgentComm = AgentMpscPort<D>;
+type AgentComm = AgentMpscAdapter<D>;
 
 pub enum Group{
     Mixes,

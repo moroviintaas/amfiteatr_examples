@@ -1,7 +1,7 @@
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use enum_map::Enum;
-use amfi::env::{EnvStateSequential, EnvironmentStateUniScore};
+use amfi::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
 use amfi::domain::DomainParameters;
 use amfi_classic::domain::*;
 use amfi_classic::domain::ClassicGameError::{ActionAfterGameOver, ActionOutOfOrder};
@@ -62,7 +62,7 @@ impl Display for PrisonerEnvState{
     }
 }
 
-impl EnvStateSequential<ClassicGameDomainNamed> for PrisonerEnvState{
+impl EnvironmentStateSequential<ClassicGameDomainNamed> for PrisonerEnvState{
     type Updates = Vec<(PrisonerId, ClassicGameUpdate<PrisonerId>)>;
 
     fn current_player(&self) -> Option<PrisonerId> {

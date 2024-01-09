@@ -101,7 +101,7 @@ impl <P0: Policy<ClassicGameDomainNamed, InfoSetType=PrisonerInfoSet>, P1: Polic
             self.agent1.reinit(self.agent1_default_state.clone());
             thread::scope(|s|{
                 s.spawn(||{
-                    self.env.run_round_robin_uni_rewards().unwrap();
+                    self.env.run_round_robin_with_rewards().unwrap();
                 });
                 s.spawn(||{
                     self.agent0.run_rewarded().unwrap();
@@ -155,7 +155,7 @@ impl<
 
                 thread::scope(|s|{
                     s.spawn(||{
-                        self.env.run_round_robin_uni_rewards().unwrap();
+                        self.env.run_round_robin_with_rewards().unwrap();
                     });
                     s.spawn(||{
                         self.agent0.run_rewarded().unwrap();

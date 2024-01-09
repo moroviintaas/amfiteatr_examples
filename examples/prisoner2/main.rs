@@ -71,7 +71,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
 
     thread::scope(|s|{
         s.spawn(||{
-            env.run_round_robin_uni_rewards().unwrap();
+            env.run_round_robin_with_rewards().unwrap();
         });
         s.spawn(||{
             prisoner0.run_rewarded().unwrap();
@@ -95,7 +95,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomainNamed>>{
 
     thread::scope(|s|{
         s.spawn(||{
-            env.run_round_robin_uni_rewards().unwrap();
+            env.run_round_robin_with_rewards().unwrap();
         });
         s.spawn(||{
             prisoner0.run_rewarded().unwrap();

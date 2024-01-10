@@ -1,5 +1,5 @@
 use serde::{Serialize};
-use amfi::domain::DomainParameters;
+use amfi_core::domain::DomainParameters;
 
 #[derive(Serialize, Clone, Debug)]
 pub struct PayoffSeries<DP: DomainParameters>

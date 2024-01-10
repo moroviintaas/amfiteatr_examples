@@ -1,8 +1,8 @@
 use std::fmt::Debug;
-use amfi::agent::{InformationSet,
+use amfi_core::agent::{InformationSet,
                   PresentPossibleActions,
                   EvaluatedInformationSet};
-use amfi::domain::DomainParameters;
+use amfi_core::domain::DomainParameters;
 use amfi_classic::domain::{ClassicAction, ClassicGameDomainNumbered, IntReward};
 
 

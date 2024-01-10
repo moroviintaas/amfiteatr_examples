@@ -12,18 +12,18 @@ use tch::{Device, nn, Tensor};
 use clap::Parser;
 use plotters::style::colors;
 use tch::nn::{Adam, VarStore};
-use amfi::agent::*;
-use amfi::comm::{
+use amfi_core::agent::*;
+use amfi_core::comm::{
     AgentMpscAdapter,
     EnvironmentMpscPort
 };
-use amfi::env::{TracingEnvironment};
-use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingEnv};
+use amfi_core::env::{TracingEnvironment};
+use amfi_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingEnv};
 use amfi_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
-use amfi::agent::RewardedAgent;
-use amfi::agent::TracingAgent;
-use amfi::domain::DomainParameters;
-use amfi::error::AmfiError;
+use amfi_core::agent::RewardedAgent;
+use amfi_core::agent::TracingAgent;
+use amfi_core::domain::DomainParameters;
+use amfi_core::error::AmfiError;
 use amfi_classic::domain::{
     AgentNum,
     ClassicAction,

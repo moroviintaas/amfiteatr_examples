@@ -1,8 +1,8 @@
 use std::fmt::{Display, Formatter};
 use std::sync::Arc;
 use enum_map::Enum;
-use amfi::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
-use amfi::domain::DomainParameters;
+use amfi_core::env::{EnvironmentStateSequential, EnvironmentStateUniScore};
+use amfi_core::domain::DomainParameters;
 use amfi_classic::domain::*;
 use amfi_classic::domain::ClassicGameError::{ActionAfterGameOver, ActionOutOfOrder};
 use amfi_classic::domain::PrisonerId::{Bob, Alice};

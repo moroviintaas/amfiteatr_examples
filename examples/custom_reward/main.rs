@@ -9,11 +9,11 @@ use amfi_rl::tensor_repr::{WayToTensor};
 use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::{Parser};
 use plotters::style::colors;
-use amfi::agent::*;
-use amfi::comm::EnvironmentMpscPort;
-use amfi::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
-use amfi::env::TracingEnvironment;
-use amfi::error::AmfiError;
+use amfi_core::agent::*;
+use amfi_core::comm::EnvironmentMpscPort;
+use amfi_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
+use amfi_core::env::TracingEnvironment;
+use amfi_core::error::AmfiError;
 use amfi_classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr, AgentAssessmentClasic};
 use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
 use amfi_classic::domain::ClassicAction::Cooperate;
@@ -167,11 +167,13 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
             .add(nn::linear(path / "input", input_size, 512, Default::default()))
             //.add(nn::linear(path / "h1", 256, 256, Default::default()))
             .add(nn::linear(path / "hidden1", 512, 512, Default::default()))
-            .add(nn::linear(path / "hidden2", 512, 512, Default::default()))
+            .add_fn(|xs| xs.tanh())
+            .add(nn::linear(path / "hidden2", 512, 256, Default::default()))
+            .add_fn(|xs| xs.tanh())
             .add_fn(|xs|xs.relu());
             //.add(nn::linear(path / "h2", 512, 512, Default::default()));
-        let actor = nn::linear(path / "al", 512, 2, Default::default());
-        let critic =  nn::linear(path / "ac", 512, 1, Default::default());
+        let actor = nn::linear(path / "al", 256, 2, Default::default());
+        let critic =  nn::linear(path / "ac", 256, 1, Default::default());
         {move |input: &Tensor|{
             let xs = input.to_device(device).apply(&seq);
             TensorA2C{critic: xs.apply(&critic), actor: xs.apply(&actor)}

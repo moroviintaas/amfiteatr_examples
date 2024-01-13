@@ -36,9 +36,8 @@ use amfi_classic::agent::{
     OwnHistoryTensorRepr};
 use amfi_examples::plots::{plot_many_series, PlotSeries};
 use amfi_examples::series::PayoffGroupSeries;
-use amfi_rl::actor_critic::ActorCriticPolicy;
-use amfi_rl::{LearningNetworkPolicy, TrainConfig};
-use amfi_rl::tensor_repr::WayToTensor;
+use amfi_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
+use amfi_rl::tensor_data::ConversionToTensor;
 use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use crate::options::ReplicatorOptions;
 

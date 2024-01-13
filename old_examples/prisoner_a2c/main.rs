@@ -15,8 +15,7 @@ use amfi_classic::domain::ClassicGameDomainNamed;
 use amfi_classic::domain::PrisonerId::{Alice, Bob};
 use amfi_classic::SymmetricRewardTableInt;
 use amfi_examples::classic::env::PrisonerEnvState;
-use amfi_rl::actor_critic::ActorCriticPolicy;
-use amfi_rl::{LearningNetworkPolicy, TrainConfig};
+use amfi_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
 use amfi_rl::torch_net::{A2CNet, TensorA2C};
 
 
@@ -172,7 +171,7 @@ impl<
 
             match reward_source{
                 RewardSource::Env => self.agent1.policy_mut().train_on_trajectories_env_reward(&trajectory_archive[..]).unwrap(),
-                RewardSource::State => self.agent1.policy_mut().train_on_trajectories_info_set_rewards(&trajectory_archive[..]).unwrap(),
+                RewardSource::State => self.agent1.policy_mut().train_on_trajectories_self_assessed(&trajectory_archive[..]).unwrap(),
             };
 
             let scores = self.evaluate(1000)?;

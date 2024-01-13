@@ -5,7 +5,7 @@ use std::path::{Path};
 use log::{debug, info};
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use amfi_rl::tensor_repr::{WayToTensor};
+use amfi_rl::tensor_data::{ConversionToTensor};
 use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::{Parser};
 use plotters::style::colors;
@@ -19,8 +19,7 @@ use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbere
 use amfi_classic::domain::ClassicAction::Cooperate;
 use amfi_classic::env::PairingState;
 use amfi_classic::SymmetricRewardTableInt;
-use amfi_rl::actor_critic::ActorCriticPolicy;
-use amfi_rl::{LearningNetworkPolicy, TrainConfig};
+use amfi_rl::policy::*;
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
 use amfi_examples::plots::{plot_many_series, PlotSeries};

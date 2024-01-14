@@ -15,9 +15,9 @@ use amfi_core::comm::EnvironmentMpscPort;
 use amfi_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi_core::env::TracingEnvironment;
 use amfi_core::error::AmfiError;
-use amfi_classic::agent::{FibonacciForgiveStrategy, OwnHistoryInfoSet, OwnHistoryInfoSetNumbered, OwnHistoryTensorRepr, SwitchAfterTwo};
+use amfi_classic::agent::{FibonacciForgiveStrategy, LocalHistoryInfoSet, LocalHistoryInfoSetNumbered, LocalHistoryConversionToTensor, SwitchAfterTwo};
 use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
-use amfi_classic::domain::ClassicAction::{Cooperate, Defect};
+use amfi_classic::domain::ClassicAction::{Down, Up};
 use amfi_classic::env::PairingState;
 use amfi_classic::policy::ClassicMixedStrategy;
 use amfi_classic::SymmetricRewardTableInt;
@@ -68,7 +68,7 @@ pub fn run_game(
     env: &mut (impl AutoEnvironmentWithScores<Domain> + Send + ReseedEnvironment<Domain, ()>),
     agent0: &mut (impl EpisodeMemoryAgent<Domain, ()> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>),
     //agent1: &mut (impl MultiEpisodeAgent<Domain, ()> + AutomaticAgentRewarded<Domain> + Send + ReseedAgent<Domain, ()>)
-    agent1: &mut Box<dyn ModelAgent<Domain, (), OwnHistoryInfoSetNumbered>>
+    agent1: &mut Box<dyn ModelAgent<Domain, (), LocalHistoryInfoSetNumbered>>
     )
     -> Result<(), AmfiError<Domain>>{
 
@@ -123,7 +123,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
 
-    let tensor_repr = OwnHistoryTensorRepr::new(args.number_of_rounds);
+    let tensor_repr = LocalHistoryConversionToTensor::new(args.number_of_rounds);
 
     let input_size = tensor_repr.desired_shape().iter().product();
 
@@ -176,13 +176,13 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let net0 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = ActorCriticPolicy::new(net0, opt0, tensor_repr, TrainConfig {gamma: 0.99});
-    let state0 = OwnHistoryInfoSet::new(0, reward_table.into());
+    let state0 = LocalHistoryInfoSet::new(0, reward_table.into());
     let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
 
-    let state1 = OwnHistoryInfoSet::new(1, reward_table.into());
+    let state1 = LocalHistoryInfoSet::new(1, reward_table.into());
 
-    let mut agent_1: Box<dyn ModelAgent<D, (), OwnHistoryInfoSetNumbered, >> = match args.policy{
+    let mut agent_1: Box<dyn ModelAgent<D, (), LocalHistoryInfoSetNumbered, >> = match args.policy{
         SecondPolicy::Mixed => {
             Box::new(TracingAgentGen::new(state1, comm1, ClassicMixedStrategy::new(args.defect_proba as f64)))
         }
@@ -201,8 +201,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         run_game(&mut environment, &mut agent_0, &mut agent_1)?;
         scores[0].push(agent_0.current_universal_score()) ;
         scores[1].push(agent_1.current_universal_score());
-        actions[0].push(agent_0.info_set().count_actions_self_calculate(Cooperate));
-        actions[1].push(agent_0.info_set().count_actions_self_calculate(Defect));
+        actions[0].push(agent_0.info_set().count_actions_self_calculate(Down));
+        actions[1].push(agent_0.info_set().count_actions_self_calculate(Up));
         //scores[2].push(reward_f(agent_1.current_subjective_score()) as i64);
 
 
@@ -243,8 +243,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
             run_game(&mut environment, &mut agent_0, &mut agent_1)?;
             scores[0].push(agent_0.current_universal_score());
             scores[1].push(agent_1.current_universal_score());
-            actions[0].push(agent_0.info_set().count_actions_self_calculate(Cooperate));
-            actions[1].push(agent_0.info_set().count_actions_self_calculate(Defect));
+            actions[0].push(agent_0.info_set().count_actions_self_calculate(Down));
+            actions[1].push(agent_0.info_set().count_actions_self_calculate(Up));
             //scores[2].push(reward_f(agent_1.current_subjective_score()) as i64);
 
         }

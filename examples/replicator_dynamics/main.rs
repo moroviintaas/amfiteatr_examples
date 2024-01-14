@@ -32,8 +32,8 @@ use amfi_classic::domain::{
 use amfi_classic::env::PairingState;
 use amfi_classic::{AsymmetricRewardTableInt, SymmetricRewardTable};
 use amfi_classic::agent::{
-    OwnHistoryInfoSet,
-    OwnHistoryTensorRepr};
+    LocalHistoryInfoSet,
+    LocalHistoryConversionToTensor};
 use amfi_examples::plots::{plot_many_series, PlotSeries};
 use amfi_examples::series::PayoffGroupSeries;
 use amfi_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
@@ -79,9 +79,9 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
 }
 type D = ClassicGameDomainNumbered;
 type S = PairingState<<D as DomainParameters>::AgentId>;
-type Pol = ActorCriticPolicy<D, OwnHistoryInfoSet<<D as DomainParameters>::AgentId>, OwnHistoryTensorRepr>;
-type MixedPolicy = ClassicMixedStrategy<AgentNum, OwnHistoryInfoSet<AgentNum>>;
-type PurePolicy = ClassicPureStrategy<AgentNum, OwnHistoryInfoSet<AgentNum>>;
+type Pol = ActorCriticPolicy<D, LocalHistoryInfoSet<<D as DomainParameters>::AgentId>, LocalHistoryConversionToTensor>;
+type MixedPolicy = ClassicMixedStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>;
+type PurePolicy = ClassicPureStrategy<AgentNum, LocalHistoryInfoSet<AgentNum>>;
 type AgentComm = AgentMpscAdapter<D>;
 
 pub enum Group{
@@ -197,7 +197,7 @@ impl Model{
             let guard = agent.lock().unwrap();
             let score = guard.current_universal_score() as f32;
             let coops = guard.episodes().last().and_then(|t| Some(t.list().iter().filter(|t|{
-                t.taken_action() == &ClassicAction::Cooperate
+                t.taken_action() == &ClassicAction::Down
             }).count())).unwrap_or(0usize);
             /*
             let defects = guard.game_trajectory().list().iter().filter(|t|{
@@ -207,7 +207,7 @@ impl Model{
 
              */
             let defects = guard.episodes().last().and_then(|t| Some(t.list().iter().filter(|t|{
-                t.taken_action() == &ClassicAction::Defect
+                t.taken_action() == &ClassicAction::Up
             }).count())).unwrap_or(0usize);
             self.learning_defects.push(defects as f32);
             self.learning_coops.push(coops as f32);
@@ -341,7 +341,7 @@ fn main() -> Result<(), AmfiError<D>>{
     let reward_table: AsymmetricRewardTableInt =
         SymmetricRewardTable::new(2, 1, 4, 0).into();
     //let env_state_template = PairingState::new_even(number_of_players, args.number_of_rounds, reward_table).unwrap();
-    let tensor_repr = OwnHistoryTensorRepr::new(args.number_of_rounds);
+    let tensor_repr = LocalHistoryConversionToTensor::new(args.number_of_rounds);
     let input_size = tensor_repr.desired_shape().iter().product();
     //let mut comms = HashMap::<u32, SyncCommEnv<ClassicGameDomainNumbered>>::with_capacity(number_of_players);
 
@@ -383,7 +383,7 @@ fn main() -> Result<(), AmfiError<D>>{
 
     for i in offset_learning..offset_mixed{
         let comm = env_adapter.register_agent(i)?;
-        let state = OwnHistoryInfoSet::new(i, reward_table);
+        let state = LocalHistoryInfoSet::new(i, reward_table);
         let net = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
         let opt = net.build_optimizer(Adam::default(), 1e-4).unwrap();
         let policy = ActorCriticPolicy::new(net, opt, tensor_repr, TrainConfig {gamma: 0.99});
@@ -395,7 +395,7 @@ fn main() -> Result<(), AmfiError<D>>{
 
     for i in offset_mixed..offset_hawk{
         let comm = env_adapter.register_agent(i)?;
-        let state = OwnHistoryInfoSet::new(i, reward_table);
+        let state = LocalHistoryInfoSet::new(i, reward_table);
 
         let policy = MixedPolicy::new(args.mix_probability_of_hawk);
         let agent = AgentGen::new(state, comm, policy);
@@ -404,18 +404,18 @@ fn main() -> Result<(), AmfiError<D>>{
 
     for i in offset_hawk..offset_dove{
         let comm = env_adapter.register_agent(i)?;
-        let state = OwnHistoryInfoSet::new(i, reward_table);
+        let state = LocalHistoryInfoSet::new(i, reward_table);
 
-        let policy = PurePolicy::new(ClassicAction::Defect);
+        let policy = PurePolicy::new(ClassicAction::Up);
         let agent = AgentGen::new(state, comm, policy);
         hawk_agents.push(Arc::new(Mutex::new(agent)));
 
     }
     for i in offset_dove..total_number_of_players as AgentNum{
         let comm = env_adapter.register_agent(i)?;
-        let state = OwnHistoryInfoSet::new(i, reward_table);
+        let state = LocalHistoryInfoSet::new(i, reward_table);
 
-        let policy = PurePolicy::new(ClassicAction::Cooperate);
+        let policy = PurePolicy::new(ClassicAction::Down);
         let agent = AgentGen::new(state, comm, policy);
         dove_agents.push(Arc::new(Mutex::new(agent)));
 

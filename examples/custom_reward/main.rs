@@ -14,9 +14,9 @@ use amfi_core::comm::EnvironmentMpscPort;
 use amfi_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
 use amfi_core::env::TracingEnvironment;
 use amfi_core::error::AmfiError;
-use amfi_classic::agent::{OwnHistoryInfoSet, OwnHistoryTensorRepr, AgentAssessmentClasic};
+use amfi_classic::agent::{LocalHistoryInfoSet, LocalHistoryConversionToTensor, AgentAssessmentClassic};
 use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
-use amfi_classic::domain::ClassicAction::Cooperate;
+use amfi_classic::domain::ClassicAction::Down;
 use amfi_classic::env::PairingState;
 use amfi_classic::SymmetricRewardTableInt;
 use amfi_rl::policy::*;
@@ -125,7 +125,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let number_of_players = 2;
 
 
-    let reward_f: Box<dyn Fn(AgentAssessmentClasic<i64>) -> f32> = match args.policy{
+    let reward_f: Box<dyn Fn(AgentAssessmentClassic<i64>) -> f32> = match args.policy{
         SecondPolicy::Std => Box::new(|reward| reward.table_payoff() as f32),
         SecondPolicy::MinDefects => {Box::new(|reward| reward.coops_as_reward() as f32)}
         SecondPolicy::StdMinDefects => Box::new(|reward|
@@ -138,7 +138,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         }),
     };
 
-    let tensor_repr = OwnHistoryTensorRepr::new(args.number_of_rounds);
+    let tensor_repr = LocalHistoryConversionToTensor::new(args.number_of_rounds);
 
     let input_size = tensor_repr.desired_shape().iter().product();
 
@@ -192,11 +192,11 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
     let net0 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
     let opt0 = net0.build_optimizer(Adam::default(), 1e-4).unwrap();
     let normal_policy = ActorCriticPolicy::new(net0, opt0, tensor_repr, TrainConfig {gamma: 0.99});
-    let state0 = OwnHistoryInfoSet::new(0, reward_table.into());
+    let state0 = LocalHistoryInfoSet::new(0, reward_table.into());
     let mut agent_0 = TracingAgentGen::new(state0, comm0, normal_policy);
 
 
-    let state1 = OwnHistoryInfoSet::new(1, reward_table.into());
+    let state1 = LocalHistoryInfoSet::new(1, reward_table.into());
     //let test_policy = ClassicPureStrategy::new(ClassicAction::Defect);
 
     let net1 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
@@ -215,8 +215,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
         scores[0].push(agent_0.current_universal_score()) ;
         scores[1].push(agent_1.current_universal_score());
         scores[2].push(reward_f(agent_1.current_assessment_total()) as i64);
-        coops[0].push(agent_0.info_set().count_actions_self_calculate(Cooperate));
-        coops[1].push(agent_1.info_set().count_actions_self_calculate(Cooperate));
+        coops[0].push(agent_0.info_set().count_actions_self_calculate(Down));
+        coops[1].push(agent_1.info_set().count_actions_self_calculate(Down));
 
 
     }
@@ -301,8 +301,8 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
             scores[0].push(agent_0.current_universal_score());
             scores[1].push(agent_1.current_universal_score());
             scores[2].push(reward_f(agent_1.current_assessment_total()) as i64);
-            coops[0].push(agent_0.info_set().count_actions_self_calculate(Cooperate));
-            coops[1].push(agent_1.info_set().count_actions_self_calculate(Cooperate));
+            coops[0].push(agent_0.info_set().count_actions_self_calculate(Down));
+            coops[1].push(agent_1.info_set().count_actions_self_calculate(Down));
 
         }
 

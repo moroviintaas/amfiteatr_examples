@@ -26,14 +26,6 @@ use amfi_examples::plots::{plot_many_series, PlotSeries};
 use amfi_examples::series::{MultiAgentPayoffSeries, PayoffSeries};
 
 
-/*
-pub struct ModelElements<ID: UsizeAgentId, Seed>{
-    pub environment: Arc<Mutex<dyn AutoEnvironmentWithScores<ClassicGameDomain<ID>>>>,
-    agents: [Arc<Mutex<dyn AutomaticAgentRewarded<ClassicGameDomain<ID>>>>;2],
-    seed: PhantomData<Seed>,
-}
-
- */
 
 pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
     let dispatch  = fern::Dispatch::new()
@@ -84,37 +76,9 @@ pub fn run_game(
     Ok(())
 
 }
-/*
-pub trait CustomLearningAgent<DP: DomainParameters>:
-    MultiEpisodeAgent<DP> + NetworkLearningAgent<DP> + AutomaticAgentBothPayoffs<DP>{}
-pub trait CustomNotLearningAgent<DP: DomainParameters>:
-    MultiEpisodeAgent<DP> + AutomaticAgentBothPayoffs<DP>{}
 
-impl<DP: DomainParameters, T: MultiEpisodeAgent<DP> + NetworkLearningAgent<DP> + AutomaticAgentBothPayoffs<DP>>
-CustomLearningAgent<DP> for T{}
-
-impl<DP: DomainParameters, T: MultiEpisodeAgent<DP>  + AutomaticAgentBothPayoffs<DP>>
-CustomNotLearningAgent<DP> for T{}
-*/
-pub enum AgentWrap{
-    //Learning(Arc<Mutex<dyn NetworkLearningAgent<InfoSetType=(), Policy=()>>>),
-    //Simple(Arc<Mutex<dyn Au>>)
-}
 type D = ClassicGameDomainNumbered;
-//type C = SyncCommAgent<D>;
-//type IS = OwnHistoryInfoSet<AgentNum>;
-/*
-pub enum CustomAgent{
-    A2C(AgentGenT<D, ActorCriticPolicy<D, IS, OwnHistoryTensorRepr>, C>)
-}
 
-
-
-fn payoff_table_and_other_coop(reward: &VerboseReward<i64>, coop_count_scale: f32) -> f32{
-    reward.f_combine_table_with_other_coop(coop_count_scale)
-}
-
- */
 
 fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 

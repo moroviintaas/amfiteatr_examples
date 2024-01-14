@@ -5,11 +5,11 @@ edition = "2021"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
-#[[example]]
-#name = "prisoner2"
+[[example]]
+name = "prisoner_mpsc"
 
 #[[example]]
-#name = "prisoner_a2c"
+#name = "prisoner_tcp"
 
 [[example]]
 name = "replicator_dynamics"
@@ -22,8 +22,7 @@ name = "one_fixed"
 
 [dependencies]
 
-amfi_core = {path = "../amfi_core", features = ["serde"] }
-amfi_rl = {path = "../amfi_rl" }
+
 rand = "0.8.5"
 log = "0.4.20"
 thiserror = "1.0.56"
@@ -36,5 +35,10 @@ serde = {version = "1.0.195", features = ["derive", "rc"]}
 enum-map = {version = "2.7.3", features = ["serde"]}
 plotters = "0.3.5"
 plotlib = "0.5.1"
-amfi_classic = {path = "../amfi_classic"}
+
 serde_json = "1.0.111"
+
+amfi_core = {path = "../amfi_core", features = ["serde"] }
+amfi_rl = {path = "../amfi_rl" }
+amfi_classic = {path = "../amfi_classic"}
+amfi_net_ext = {path = "../amfi_net_ext"}

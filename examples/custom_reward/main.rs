@@ -5,25 +5,25 @@ use std::path::{Path};
 use log::{debug, info};
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use amfi_rl::tensor_data::{ConversionToTensor};
-use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
+use amfiteatr_rl::tensor_data::{ConversionToTensor};
+use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use clap::{Parser};
 use plotters::style::colors;
-use amfi_core::agent::*;
-use amfi_core::comm::EnvironmentMpscPort;
-use amfi_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
-use amfi_core::env::TracingEnvironment;
-use amfi_core::error::AmfiError;
-use amfi_classic::agent::{LocalHistoryInfoSet, LocalHistoryConversionToTensor, AgentAssessmentClassic};
-use amfi_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
-use amfi_classic::domain::ClassicAction::Down;
-use amfi_classic::env::PairingState;
-use amfi_classic::SymmetricRewardTableInt;
-use amfi_rl::policy::*;
+use amfiteatr_core::agent::*;
+use amfiteatr_core::comm::EnvironmentMpscPort;
+use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
+use amfiteatr_core::env::TracingEnvironment;
+use amfiteatr_core::error::AmfiError;
+use amfiteatr_classic::agent::{LocalHistoryInfoSet, LocalHistoryConversionToTensor, AgentAssessmentClassic};
+use amfiteatr_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
+use amfiteatr_classic::domain::ClassicAction::Down;
+use amfiteatr_classic::env::PairingState;
+use amfiteatr_classic::SymmetricRewardTableInt;
+use amfiteatr_rl::policy::*;
 use crate::options::EducatorOptions;
 use crate::options::SecondPolicy;
-use amfi_examples::plots::{plot_many_series, PlotSeries};
-use amfi_examples::series::{MultiAgentPayoffSeries, PayoffSeries};
+use amfiteatr_examples::plots::{plot_many_series, PlotSeries};
+use amfiteatr_examples::series::{MultiAgentPayoffSeries, PayoffSeries};
 
 
 
@@ -40,7 +40,7 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
             ))
         })
         .level(options.log_level)
-        .level_for("amfi_examples", options.log_level)
+        .level_for("amfiteatr_examples", options.log_level)
         .level_for("amfi", options.log_level_amfi);
 
         match &options.log_file{

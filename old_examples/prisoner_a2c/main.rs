@@ -5,18 +5,18 @@ use clap::{Parser, ValueEnum};
 use log::LevelFilter;
 use tch::{Device, nn, Tensor};
 use tch::nn::{Adam, VarStore};
-use amfi_core::agent::{*};
-use amfi_core::comm::{StdAgentEndpoint, StdEnvironmentEndpoint};
-use amfi_core::env::TracingHashMapEnvironment;
-use amfi_core::env::{ReinitEnvironment, RoundRobinUniversalEnvironment};
-use amfi_core::error::AmfiError;
-use amfi_classic::agent::{PrisonerInfoSet, PrisonerInfoSetWay, SwitchOnTwoSubsequent};
-use amfi_classic::domain::ClassicGameDomainNamed;
-use amfi_classic::domain::PrisonerId::{Alice, Bob};
-use amfi_classic::SymmetricRewardTableInt;
-use amfi_examples::classic::env::PrisonerEnvState;
-use amfi_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
-use amfi_rl::torch_net::{A2CNet, TensorA2C};
+use amfiteatr_core::agent::{*};
+use amfiteatr_core::comm::{StdAgentEndpoint, StdEnvironmentEndpoint};
+use amfiteatr_core::env::TracingHashMapEnvironment;
+use amfiteatr_core::env::{ReinitEnvironment, RoundRobinUniversalEnvironment};
+use amfiteatr_core::error::AmfiError;
+use amfiteatr_classic::agent::{PrisonerInfoSet, PrisonerInfoSetWay, SwitchOnTwoSubsequent};
+use amfiteatr_classic::domain::ClassicGameDomainNamed;
+use amfiteatr_classic::domain::PrisonerId::{Alice, Bob};
+use amfiteatr_classic::SymmetricRewardTableInt;
+use amfiteatr_examples::classic::env::PrisonerEnvState;
+use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
+use amfiteatr_rl::torch_net::{A2CNet, TensorA2C};
 
 
 

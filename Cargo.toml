@@ -1,5 +1,5 @@
 [package]
-name = "amfi_examples"
+name = "amfiteatr_examples"
 version = "0.1.0"
 edition = "2021"
 
@@ -38,7 +38,7 @@ plotlib = "0.5.1"
 
 serde_json = "1.0.111"
 
-amfi_core = {path = "../amfi_core", features = ["serde"] }
-amfi_rl = {path = "../amfi_rl" }
-amfi_classic = {path = "../amfi_classic"}
-amfi_net_ext = {path = "../amfi_net_ext"}
+amfiteatr_core = {path = "../amfiteatr_core", features = ["serde"] }
+amfiteatr_rl = {path = "../amfiteatr_rl" }
+amfiteatr_classic = {path = "../amfiteatr_classic" }
+amfiteatr_net_ext = {path = "../amfiteatr_net_ext" }

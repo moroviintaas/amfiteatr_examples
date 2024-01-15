@@ -1,16 +1,16 @@
 /*
 use std::collections::HashMap;
 use std::thread;
-use amfi_classic::agent::{LocalHistoryInfoSet, MinimalInfoSet};
-use amfi_classic::domain::ClassicAction::Down;
-use amfi_classic::domain::TwoPlayersStdName::{Alice, Bob};
-use amfi_classic::env::PairingState;
-use amfi_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
-use amfi_classic::SymmetricRewardTableInt;
-use amfi_core::agent::{AgentGen, AutomaticAgentRewarded, StatefulAgent, TracingAgent, TracingAgentGen};
-use amfi_core::comm::{DynEndpoint, EnvironmentMpscPort, StdEnvironmentEndpoint};
-use amfi_core::env::{AutoEnvironmentWithScores, RoundRobinUniversalEnvironment, StatefulEnvironment, TracingEnv, TracingEnvironment, TracingHashMapEnvironment};
-use amfi_net_ext::tcp::{TcpComm32, TcpComm512};
+use amfiteatr_classic::agent::{LocalHistoryInfoSet, MinimalInfoSet};
+use amfiteatr_classic::domain::ClassicAction::Down;
+use amfiteatr_classic::domain::TwoPlayersStdName::{Alice, Bob};
+use amfiteatr_classic::env::PairingState;
+use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
+use amfiteatr_classic::SymmetricRewardTableInt;
+use amfiteatr_core::agent::{AgentGen, AutomaticAgentRewarded, StatefulAgent, TracingAgent, TracingAgentGen};
+use amfiteatr_core::comm::{DynEndpoint, EnvironmentMpscPort, StdEnvironmentEndpoint};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, RoundRobinUniversalEnvironment, StatefulEnvironment, TracingEnv, TracingEnvironment, TracingHashMapEnvironment};
+use amfiteatr_net_ext::tcp::{TcpComm32, TcpComm512};
 
 fn main() {
     let number_of_players = 2;

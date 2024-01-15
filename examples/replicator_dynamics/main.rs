@@ -12,33 +12,33 @@ use tch::{Device, nn, Tensor};
 use clap::Parser;
 use plotters::style::colors;
 use tch::nn::{Adam, VarStore};
-use amfi_core::agent::*;
-use amfi_core::comm::{
+use amfiteatr_core::agent::*;
+use amfiteatr_core::comm::{
     AgentMpscAdapter,
     EnvironmentMpscPort
 };
-use amfi_core::env::{TracingEnvironment};
-use amfi_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingEnv};
-use amfi_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
-use amfi_core::agent::RewardedAgent;
-use amfi_core::agent::TracingAgent;
-use amfi_core::domain::DomainParameters;
-use amfi_core::error::AmfiError;
-use amfi_classic::domain::{
+use amfiteatr_core::env::{TracingEnvironment};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingEnv};
+use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
+use amfiteatr_core::agent::RewardedAgent;
+use amfiteatr_core::agent::TracingAgent;
+use amfiteatr_core::domain::DomainParameters;
+use amfiteatr_core::error::AmfiError;
+use amfiteatr_classic::domain::{
     AgentNum,
     ClassicAction,
     ClassicGameDomainNumbered
 };
-use amfi_classic::env::PairingState;
-use amfi_classic::{AsymmetricRewardTableInt, SymmetricRewardTable};
-use amfi_classic::agent::{
+use amfiteatr_classic::env::PairingState;
+use amfiteatr_classic::{AsymmetricRewardTableInt, SymmetricRewardTable};
+use amfiteatr_classic::agent::{
     LocalHistoryInfoSet,
     LocalHistoryConversionToTensor};
-use amfi_examples::plots::{plot_many_series, PlotSeries};
-use amfi_examples::series::PayoffGroupSeries;
-use amfi_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
-use amfi_rl::tensor_data::ConversionToTensor;
-use amfi_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
+use amfiteatr_examples::plots::{plot_many_series, PlotSeries};
+use amfiteatr_examples::series::PayoffGroupSeries;
+use amfiteatr_rl::policy::{ActorCriticPolicy, LearningNetworkPolicy, TrainConfig};
+use amfiteatr_rl::tensor_data::ConversionToTensor;
+use amfiteatr_rl::torch_net::{A2CNet, NeuralNetTemplate, TensorA2C};
 use crate::options::ReplicatorOptions;
 
 
@@ -64,9 +64,9 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
             ))
         })
         //.level(options.general_log_level)
-        .level_for("amfi_rl", options.rl_log_level)
+        .level_for("amfiteatr_rl", options.rl_log_level)
         .level_for("replicator_dynamics", options.log_level)
-        .level_for("amfi_classic", options.classic_log_level)
+        .level_for("amfiteatr_classic", options.classic_log_level)
         .level_for("amfi", options.log_level_amfi);
 
         match &options.log_file{

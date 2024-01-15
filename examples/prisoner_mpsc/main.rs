@@ -1,13 +1,13 @@
 use std::thread;
-use amfi_classic::agent::{LocalHistoryInfoSet};
-use amfi_classic::domain::ClassicAction::Down;
-use amfi_classic::domain::TwoPlayersStdName::{Alice, Bob};
-use amfi_classic::env::PairingState;
-use amfi_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
-use amfi_classic::SymmetricRewardTableInt;
-use amfi_core::agent::{AgentGen, AutomaticAgentRewarded, StatefulAgent, TracingAgent, TracingAgentGen};
-use amfi_core::comm::EnvironmentMpscPort;
-use amfi_core::env::{AutoEnvironmentWithScores, StatefulEnvironment, TracingEnv, TracingEnvironment};
+use amfiteatr_classic::agent::{LocalHistoryInfoSet};
+use amfiteatr_classic::domain::ClassicAction::Down;
+use amfiteatr_classic::domain::TwoPlayersStdName::{Alice, Bob};
+use amfiteatr_classic::env::PairingState;
+use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
+use amfiteatr_classic::SymmetricRewardTableInt;
+use amfiteatr_core::agent::{AgentGen, AutomaticAgentRewarded, StatefulAgent, TracingAgent, TracingAgentGen};
+use amfiteatr_core::comm::EnvironmentMpscPort;
+use amfiteatr_core::env::{AutoEnvironmentWithScores, StatefulEnvironment, TracingEnv, TracingEnvironment};
 
 fn main() {
     let number_of_players = 2;

@@ -3,18 +3,18 @@ use std::collections::HashMap;
 use std::path::PathBuf;
 use std::thread;
 use log::LevelFilter;
-use amfi_core::agent::{TracingAgentGen, IdAgent, AutomaticAgentRewarded, ReinitAgent, StatefulAgent, TracingAgent};
-use amfi_core::comm::StdEnvironmentEndpoint;
-use amfi_core::env::TracingHashMapEnvironment;
-use amfi_core::env::{ReinitEnvironment, RoundRobinUniversalEnvironment, TracingEnv};
-use amfi_core::error::AmfiError;
-use amfi_classic::agent::{Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
-use amfi_classic::domain::ClassicAction::Defect;
-use amfi_classic::domain::{ClassicAction, ClassicGameDomainNamed};
-use amfi_classic::domain::PrisonerId::{Alice, Bob};
-use amfi_classic::policy::ClassicPureStrategy;
-use amfi_classic::SymmetricRewardTableInt;
-use amfi_examples::classic::env::PrisonerEnvState;
+use amfiteatr_core::agent::{TracingAgentGen, IdAgent, AutomaticAgentRewarded, ReinitAgent, StatefulAgent, TracingAgent};
+use amfiteatr_core::comm::StdEnvironmentEndpoint;
+use amfiteatr_core::env::TracingHashMapEnvironment;
+use amfiteatr_core::env::{ReinitEnvironment, RoundRobinUniversalEnvironment, TracingEnv};
+use amfiteatr_core::error::AmfiError;
+use amfiteatr_classic::agent::{Forgive1Policy, PrisonerInfoSet, RandomPrisonerPolicy, SwitchOnTwoSubsequent};
+use amfiteatr_classic::domain::ClassicAction::Defect;
+use amfiteatr_classic::domain::{ClassicAction, ClassicGameDomainNamed};
+use amfiteatr_classic::domain::PrisonerId::{Alice, Bob};
+use amfiteatr_classic::policy::ClassicPureStrategy;
+use amfiteatr_classic::SymmetricRewardTableInt;
+use amfiteatr_examples::classic::env::PrisonerEnvState;
 
 
 pub fn setup_logger(log_level: LevelFilter, log_file: &Option<PathBuf>) -> Result<(), fern::InitError> {

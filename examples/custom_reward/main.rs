@@ -41,7 +41,7 @@ pub fn setup_logger(options: &EducatorOptions) -> Result<(), fern::InitError> {
         })
         .level(options.log_level)
         .level_for("amfiteatr_examples", options.log_level)
-        .level_for("amfi", options.log_level_amfi);
+        .level_for("amfiteatr_core", options.log_level_amfi);
 
         match &options.log_file{
             None => dispatch.chain(std::io::stdout()),

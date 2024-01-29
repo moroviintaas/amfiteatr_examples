@@ -38,7 +38,7 @@ plotlib = "0.5.1"
 
 serde_json = "1.0.111"
 
-amfiteatr_core = {path = "../amfiteatr_core", features = ["serde"] }
-amfiteatr_rl = {path = "../amfiteatr_rl" }
-amfiteatr_classic = {path = "../amfiteatr_classic" }
-amfiteatr_net_ext = {path = "../amfiteatr_net_ext" }
+amfiteatr_core = {version = "0.1.0", features = ["serde"] }
+amfiteatr_rl = {version = "0.1.0"}
+amfiteatr_classic = { version = "0.1.0" }
+amfiteatr_net_ext = {version = "0.1.0" }

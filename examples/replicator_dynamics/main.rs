@@ -67,7 +67,7 @@ pub fn setup_logger(options: &ReplicatorOptions) -> Result<(), fern::InitError> 
         .level_for("amfiteatr_rl", options.rl_log_level)
         .level_for("replicator_dynamics", options.log_level)
         .level_for("amfiteatr_classic", options.classic_log_level)
-        .level_for("amfi", options.log_level_amfi);
+        .level_for("amfiteatr_core", options.log_level_amfi);
 
         match &options.log_file{
             None => dispatch.chain(std::io::stdout()),

@@ -8,10 +8,10 @@ use log::{
     debug,
     info,
 };
-use tch::{Device, nn, Tensor};
+use amfiteatr_rl::tch::{Device, nn, Tensor};
 use clap::Parser;
 use plotters::style::colors;
-use tch::nn::{Adam, VarStore};
+use amfiteatr_rl::tch::nn::{Adam, VarStore};
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::{
     AgentMpscAdapter,

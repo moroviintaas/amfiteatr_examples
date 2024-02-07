@@ -17,8 +17,7 @@ use amfiteatr_core::comm::{
     AgentMpscAdapter,
     EnvironmentMpscPort
 };
-use amfiteatr_core::env::{TracingEnvironment};
-use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingEnv};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, TracingBasicEnvironment, TracingEnvironment};
 use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_core::agent::RewardedAgent;
 use amfiteatr_core::agent::TracingAgent;
@@ -92,7 +91,7 @@ pub enum Group{
 }
 
 struct Model{
-    pub environment:  TracingEnvironment<D, S, EnvironmentMpscPort<D>>,
+    pub environment:  TracingBasicEnvironment<D, S, EnvironmentMpscPort<D>>,
     //agents: Arc<Mutex<dyn MultiEpisodeAgent<D, (), InfoSetType=()>>>,
     pub mixed_agents: Vec<Arc<Mutex<AgentGen<D, MixedPolicy, AgentComm>>>>,
     pub hawk_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
@@ -122,7 +121,7 @@ struct Model{
 impl Model{
 
     #[allow(dead_code)]
-    pub fn new(environment: TracingEnvironment<D, S, EnvironmentMpscPort<D>>) -> Self{
+    pub fn new(environment: TracingBasicEnvironment<D, S, EnvironmentMpscPort<D>>) -> Self{
         Self{
             environment, mixed_agents: Vec::new(), hawk_agents: Vec::new(), dove_agents: Vec::new(),
             learning_agents: Vec::new(), averages_mixed: Vec::new(),
@@ -142,7 +141,7 @@ impl Model{
         }
     }
 
-    pub fn new_with_agents(environment: TracingEnvironment<D, S, EnvironmentMpscPort<D>>,
+    pub fn new_with_agents(environment: TracingBasicEnvironment<D, S, EnvironmentMpscPort<D>>,
                            learning_agents: Vec<Arc<Mutex<TracingAgentGen<D, Pol, AgentComm>>>>,
                            mixed_agents: Vec<Arc<Mutex<AgentGen<D, MixedPolicy, AgentComm>>>>,
                            hawk_agents: Vec<Arc<Mutex<AgentGen<D, PurePolicy, AgentComm>>>>,
@@ -422,7 +421,7 @@ fn main() -> Result<(), AmfiError<D>>{
     }
     let env_state = PairingState::new_even(total_number_of_players,
                                            args.number_of_rounds, reward_table)?;
-    let environment = TracingEnvironment::new(env_state, env_adapter);
+    let environment = TracingBasicEnvironment::new(env_state, env_adapter);
 
 
     let mut model = Model::new_with_agents(environment, learning_agents, mixed_agents,

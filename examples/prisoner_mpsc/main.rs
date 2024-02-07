@@ -7,7 +7,7 @@ use amfiteatr_classic::policy::{ClassicMixedStrategy, ClassicPureStrategy};
 use amfiteatr_classic::SymmetricRewardTableInt;
 use amfiteatr_core::agent::{AgentGen, AutomaticAgentRewarded, StatefulAgent, TracingAgent, TracingAgentGen};
 use amfiteatr_core::comm::EnvironmentMpscPort;
-use amfiteatr_core::env::{AutoEnvironmentWithScores, StatefulEnvironment, TracingEnv, TracingEnvironment};
+use amfiteatr_core::env::{AutoEnvironmentWithScores, StatefulEnvironment, TracingBasicEnvironment, TracingEnvironment};
 
 fn main() {
     let number_of_players = 2;
@@ -30,7 +30,7 @@ fn main() {
     let mut bob = AgentGen::new(bob_state, comm_bob, bob_policy);
 
     let env_state = PairingState::new_even(number_of_players, 1, reward_table.into()).unwrap();
-    let mut environment = TracingEnvironment::new(env_state, env_adapter);
+    let mut environment = TracingBasicEnvironment::new(env_state, env_adapter);
 
     thread::scope(|s|{
         s.spawn(||{

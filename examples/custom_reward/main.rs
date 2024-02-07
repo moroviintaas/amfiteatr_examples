@@ -11,8 +11,7 @@ use clap::{Parser};
 use plotters::style::colors;
 use amfiteatr_core::agent::*;
 use amfiteatr_core::comm::EnvironmentMpscPort;
-use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingEnv};
-use amfiteatr_core::env::TracingEnvironment;
+use amfiteatr_core::env::{AutoEnvironmentWithScores, ReseedEnvironment, ScoreEnvironment, TracingBasicEnvironment, TracingEnvironment};
 use amfiteatr_core::error::AmfiError;
 use amfiteatr_classic::agent::{LocalHistoryInfoSet, LocalHistoryConversionToTensor, AgentAssessmentClassic};
 use amfiteatr_classic::domain::{AgentNum, ClassicGameDomain, ClassicGameDomainNumbered};
@@ -150,7 +149,7 @@ fn main() -> Result<(), AmfiError<ClassicGameDomain<AgentNum>>>{
 
 
     let env_state_template = PairingState::new_even(number_of_players, args.number_of_rounds, reward_table.into()).unwrap();
-    let mut environment = TracingEnvironment::new(env_state_template.clone(), env_adapter);
+    let mut environment = TracingBasicEnvironment::new(env_state_template.clone(), env_adapter);
 
 
     let net0 = A2CNet::new(VarStore::new(device), net_template.get_net_closure());
